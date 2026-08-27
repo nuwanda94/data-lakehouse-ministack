@@ -1,0 +1,21 @@
+# MiniStack local AWS emulator for the medallion lakehouse.
+# Single gateway on 4566 — S3, DynamoDB, SQS, Lambda, IAM, STS.
+services:
+  ministack:
+    image: ministackorg/ministack:latest
+    container_name: lakehouse-ministack
+    ports:
+      - "4566:4566"
+    environment:
+      MINISTACK_PERSISTENCE: "1"
+    volumes:
+      - ministack-data:/var/lib/ministack
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:4566')\" || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+volumes:
+  ministack-data:
