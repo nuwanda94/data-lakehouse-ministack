@@ -21,6 +21,7 @@ PUBLIC_MODULES = [
     "lakehouse.ops",
     "lakehouse.ops.seed",
     "lakehouse.ops.pipeline",
+    "lakehouse.ops.outputs",
 ]
 
 

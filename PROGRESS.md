@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-27 23:01 IST
+- Completed: chore: Add `scripts/get_outputs.sh` or Python helper
+- Next candidate: docs: Expand README with exact run instructions & screenshots (P0)
+- Notes: Added `lakehouse.ops.outputs.collect_outputs()` which reads `terraform output -json`, then `terraform.tfstate`, then documented defaults. `scripts/get_outputs.sh` and `python -m lakehouse outputs` emit KEY=value (optional `--export` / `--json` / `--write-env`). Makefile seed/pipeline/query now eval `get_outputs.sh`. `scripts/tf_env.sh` is a compatibility wrapper.
+
 ## 2026-08-27 22:01 IST
 - Completed: chore: Add `.env` loading helper
 - Next candidate: chore: Add `scripts/get_outputs.sh` or Python helper (P0)

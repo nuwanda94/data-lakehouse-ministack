@@ -7,7 +7,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] chore: Finalize package layout & imports
 - [x] chore: Make `make up/infra/seed/pipeline` fully reliable
 - [x] chore: Add `.env` loading helper
-- [ ] chore: Add `scripts/get_outputs.sh` or Python helper
+- [x] chore: Add `scripts/get_outputs.sh` or Python helper
 - [ ] docs: Expand README with exact run instructions & screenshots
 - [ ] docs: Add ADR-003: Local orchestration vs Step Functions
 - [ ] test: Expand unit tests for seed + transform

@@ -14,3 +14,11 @@ def test_settings_json(capsys: object, monkeypatch: object) -> None:
     assert main(["settings"]) == 0
     captured = capsys.readouterr()  # type: ignore[attr-defined]
     assert "g-test" in captured.out
+
+
+def test_outputs_defaults_json(tmp_path, capsys: object) -> None:
+    empty = tmp_path / "tf"
+    empty.mkdir()
+    assert main(["outputs", "--tf-dir", str(empty), "--json"]) == 0
+    captured = capsys.readouterr()  # type: ignore[attr-defined]
+    assert "lakehouse-local-bronze" in captured.out

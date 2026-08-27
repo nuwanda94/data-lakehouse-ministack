@@ -15,10 +15,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("settings", "health", "seed", "pipeline", "query"),
+        choices=("settings", "health", "seed", "pipeline", "query", "outputs"),
         help="Command to run.",
     )
     parser.add_argument("--count", type=int, default=50, help="Events to seed (seed only)")
+    parser.add_argument("--tf-dir", default=None, help="Terraform directory (outputs only)")
+    parser.add_argument(
+        "--export",
+        action="store_true",
+        help="Prefix KEY=value lines with export (outputs only)",
+    )
+    parser.add_argument("--json", action="store_true", dest="as_json", help="JSON output (outputs)")
+    parser.add_argument("--write-env", default=None, help="Write dotenv file (outputs only)")
     args = parser.parse_args(argv)
 
     if args.version:
@@ -41,6 +49,18 @@ def main(argv: list[str] | None = None) -> int:
             "gold_metrics_table": settings.gold_metrics_table,
         }
         print(json.dumps(payload, indent=2))
+        return 0
+
+    if args.command == "outputs":
+        from lakehouse.ops.outputs import collect_outputs, format_exports, write_env_file
+
+        values = collect_outputs(args.tf_dir)
+        if args.write_env:
+            write_env_file(args.write_env, values)
+        if args.as_json:
+            print(json.dumps(values, indent=2))
+        else:
+            sys.stdout.write(format_exports(values, export=args.export))
         return 0
 
     if args.command == "health":

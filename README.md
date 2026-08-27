@@ -13,6 +13,7 @@ src/lakehouse/
   config.py        # Settings + load_settings() / load_dotenv()
   aws.py           # boto3 client factory
   cli.py           # `python -m lakehouse`
+  ops/outputs.py   # Terraform output → env mapping
   seed/            # bronze sample data
   pipeline/        # orchestration
   transforms/      # zone transforms
@@ -43,11 +44,17 @@ Requires Docker and Terraform.
 make install
 make up          # MiniStack on :4566 + health check
 make infra       # S3 buckets + DynamoDB tables
+make outputs     # KEY=value from Terraform (or state / defaults)
 make seed        # synthetic events → bronze
 make pipeline    # bronze → silver → gold
 make query
 make test
 ```
 
-`make infra` prints Terraform outputs. `make seed` / `make pipeline` / `make query`
-eval `scripts/tf_env.sh` so bucket and table names stay in sync with Terraform.
+`make seed` / `make pipeline` / `make query` eval `scripts/get_outputs.sh` so
+bucket and table names stay in sync with Terraform. Equivalent Python:
+
+```bash
+eval "$(python -m lakehouse outputs --export)"
+python -m lakehouse outputs --write-env .env.generated
+```

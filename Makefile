@@ -18,7 +18,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health infra infra-plan destroy seed pipeline query test clean
+.PHONY: help install up down logs health infra infra-plan destroy seed pipeline query outputs test clean
 
 help:
 	@printf '%s\n' \
@@ -27,8 +27,9 @@ help:
 	  '  make up        start MiniStack and wait until healthy' \
 	  '  make health    probe MiniStack + list buckets/tables' \
 	  '  make infra     terraform apply buckets + DynamoDB tables' \
+	  '  make outputs   print Terraform outputs as KEY=value env vars' \
 	  '  make seed      write synthetic events to bronze' \
-	  '  make pipeline  bronze → silver → gold (local runner)' \
+	  '  make pipeline  bronze \u2192 silver \u2192 gold (local runner)' \
 	  '  make query     print gold object + metrics summary' \
 	  '  make test      unit tests' \
 	  '  make down      stop MiniStack' \
@@ -66,25 +67,26 @@ infra:
 	cd $(TF_DIR) && terraform init -input=false
 	cd $(TF_DIR) && terraform apply -input=false -auto-approve
 	@echo "--- terraform outputs ---"
-	@cd $(TF_DIR) && terraform output
-	@echo "Export these before seed/pipeline if you overrode names:"
-	@$(ROOT)/scripts/tf_env.sh
+	@$(MAKE) --no-print-directory outputs
 
 destroy:
 	@command -v terraform >/dev/null || { echo "ERROR: terraform is required" >&2; exit 1; }
 	cd $(TF_DIR) && terraform destroy -input=false -auto-approve
 
+outputs:
+	@bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR)
+
 seed:
 	@$(ROOT)/scripts/wait_healthy.sh
-	@eval "$$($(ROOT)/scripts/tf_env.sh)"; $(PYTHON) -m lakehouse seed
+	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse seed
 
 pipeline:
 	@$(ROOT)/scripts/wait_healthy.sh
-	@eval "$$($(ROOT)/scripts/tf_env.sh)"; $(PYTHON) -m lakehouse pipeline
+	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse pipeline
 
 query:
 	@$(ROOT)/scripts/wait_healthy.sh
-	@eval "$$($(ROOT)/scripts/tf_env.sh)"; $(PYTHON) -m lakehouse query
+	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse query
 
 test:
 	$(PYTHON) -m pytest $(ROOT)/tests
