@@ -3,20 +3,17 @@
 from __future__ import annotations
 
 from lakehouse.cli import main
-from lakehouse.config import Settings, get_settings
+from lakehouse.config import load_settings
 from lakehouse.pipeline import bronze_key, gold_key, run_quality_checks, silver_key
 from lakehouse.seed import generate_events
 
 
 def test_settings_defaults_match_env_example() -> None:
-    get_settings.cache_clear()
-    settings = Settings(
-        _env_file=None,  # type: ignore[call-arg]
-    )
+    settings = load_settings()
     assert settings.bronze_bucket == "lakehouse-local-bronze"
     assert settings.silver_bucket == "lakehouse-local-silver"
     assert settings.gold_bucket == "lakehouse-local-gold"
-    assert settings.endpoint_url.startswith("http://")
+    assert settings.aws_endpoint_url.startswith("http://")
 
 
 def test_generate_events_is_deterministic() -> None:
@@ -37,10 +34,10 @@ def test_zone_keys_and_quality() -> None:
 
 
 def test_cli_version_and_config(capsys) -> None:
-    assert main(["version"]) == 0
+    assert main(["--version"]) == 0
     ver = capsys.readouterr().out.strip()
     assert ver
 
-    assert main(["config"]) == 0
+    assert main(["settings"]) == 0
     out = capsys.readouterr().out
     assert "bronze_bucket" in out

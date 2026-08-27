@@ -18,6 +18,9 @@ PUBLIC_MODULES = [
     "lakehouse.pipeline.gold",
     "lakehouse.pipeline.quality",
     "lakehouse.pipeline.runs",
+    "lakehouse.ops",
+    "lakehouse.ops.seed",
+    "lakehouse.ops.pipeline",
 ]
 
 

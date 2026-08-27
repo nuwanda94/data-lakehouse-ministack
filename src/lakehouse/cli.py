@@ -1,4 +1,4 @@
-"""Minimal package entry point so `python -m lakehouse` and the console script work."""
+"""Package entry point for `python -m lakehouse` and the console script."""
 
 from __future__ import annotations
 
@@ -15,13 +15,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("settings",),
-        help="Optional command. `settings` prints the resolved configuration.",
+        choices=("settings", "health", "seed", "pipeline", "query"),
+        help="Command to run.",
     )
+    parser.add_argument("--count", type=int, default=50, help="Events to seed (seed only)")
     args = parser.parse_args(argv)
 
     if args.version:
         print(__version__)
+        return 0
+
+    if args.command is None:
+        parser.print_help()
         return 0
 
     if args.command == "settings":
@@ -36,6 +41,37 @@ def main(argv: list[str] | None = None) -> int:
             "gold_metrics_table": settings.gold_metrics_table,
         }
         print(json.dumps(payload, indent=2))
+        return 0
+
+    if args.command == "health":
+        from lakehouse.ops.health import check_health
+
+        report = check_health()
+        print(json.dumps(report, indent=2))
+        if report.get("errors"):
+            print("WARNING: partial health failure", file=sys.stderr)
+            return 1
+        return 0
+
+    if args.command == "seed":
+        from lakehouse.ops.seed import seed_bronze
+
+        result = seed_bronze(args.count)
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "pipeline":
+        from lakehouse.ops.pipeline import run_pipeline
+
+        result = run_pipeline()
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "query":
+        from lakehouse.ops.query import query_gold
+
+        result = query_gold()
+        print(json.dumps(result, indent=2))
         return 0
 
     parser.print_help()
