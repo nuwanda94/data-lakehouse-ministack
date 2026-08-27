@@ -12,6 +12,7 @@ license = { text = "MIT" }
 authors = [{ name = "Data Platform Team" }]
 dependencies = [
   "boto3>=1.34",
+  "pydantic>=2.6",
 ]
 
 [project.optional-dependencies]

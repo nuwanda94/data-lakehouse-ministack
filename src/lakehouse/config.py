@@ -62,3 +62,6 @@ def load_settings() -> Settings:
         pipeline_runs_table=_env("PIPELINE_RUNS_TABLE"),
         gold_metrics_table=_env("GOLD_METRICS_TABLE"),
     )
+
+
+get_settings = load_settings

@@ -6,9 +6,12 @@ reaching into implementation modules from scripts or tests.
 
 from lakehouse.config import Settings, load_settings
 
+get_settings = load_settings
+
 __all__ = [
     "Settings",
     "load_settings",
+    "get_settings",
     "__version__",
 ]
 

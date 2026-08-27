@@ -5,7 +5,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 ## Phase 0 — Foundation Hardening (P0)
 
 - [x] chore: Finalize package layout & imports
-- [ ] chore: Make `make up/infra/seed/pipeline` fully reliable
+- [x] chore: Make `make up/infra/seed/pipeline` fully reliable
 - [ ] chore: Add `.env` loading helper
 - [ ] chore: Add `scripts/get_outputs.sh` or Python helper
 - [ ] docs: Expand README with exact run instructions & screenshots
