@@ -58,7 +58,7 @@ def test_empty_required_setting_raises(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_parse_dotenv_handles_export_quotes_and_comments() -> None:
     text = """
 # comment
-export BRONZE_BUCKET=\"from-file\"
+export BRONZE_BUCKET='from-file'
 SILVER_BUCKET='also-from-file'
 GOLD_BUCKET=plain
 INVALID LINE
@@ -68,6 +68,9 @@ INVALID LINE
     assert parsed["SILVER_BUCKET"] == "also-from-file"
     assert parsed["GOLD_BUCKET"] == "plain"
     assert "INVALID" not in parsed
+
+    double_quoted = parse_dotenv('GOLD_BUCKET="gold-quoted"\n')
+    assert double_quoted["GOLD_BUCKET"] == "gold-quoted"
 
 
 def test_load_dotenv_does_not_override_existing_env(
