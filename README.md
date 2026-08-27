@@ -10,7 +10,7 @@ one import path:
 
 ```
 src/lakehouse/
-  config.py        # Settings + load_settings()
+  config.py        # Settings + load_settings() / load_dotenv()
   aws.py           # boto3 client factory
   cli.py           # `python -m lakehouse`
   seed/            # bronze sample data
@@ -29,8 +29,9 @@ python -m lakehouse --version
 pytest
 ```
 
-Environment defaults match `.env.example`. Copy that file to `.env` when you
-start using the local stack; dotenv loading is a follow-up chore.
+Copy `.env.example` to `.env` to override defaults. `load_settings()` reads
+that file automatically and **does not** override variables already present
+in the process environment (Makefile / Terraform output injection wins).
 
 See `TODO.md` for the implementation plan and `PROGRESS.md` for the run log.
 

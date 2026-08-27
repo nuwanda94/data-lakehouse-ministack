@@ -1,13 +1,20 @@
-"""Runtime settings loaded from process environment.
+"""Runtime settings loaded from process environment and optional `.env` files.
 
-`.env` file loading is a follow-up chore; this module only reads `os.environ`
-so imports stay free of optional I/O side effects.
+Precedence (highest first):
+1. Existing process environment variables
+2. Values from a discovered or explicit `.env` file
+3. Documented defaults in `_DEFAULTS`
+
+`.env` loading never overrides variables that are already set. That keeps
+Makefile / Terraform output injection (`scripts/tf_env.sh`) authoritative.
 """
 
 from __future__ import annotations
 
 import os
+import re
 from dataclasses import dataclass
+from pathlib import Path
 
 _DEFAULTS = {
     "AWS_ENDPOINT_URL": "http://localhost:4566",
@@ -20,6 +27,75 @@ _DEFAULTS = {
     "PIPELINE_RUNS_TABLE": "lakehouse-local-pipeline-runs",
     "GOLD_METRICS_TABLE": "lakehouse-local-gold-metrics",
 }
+
+_LINE_RE = re.compile(
+    r"^(?:export\s+)?(?P<key>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?P<value>.*)$"
+)
+
+
+def parse_dotenv(text: str) -> dict[str, str]:
+    """Parse a subset of dotenv syntax used by this project."""
+
+    parsed: dict[str, str] = {}
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = _LINE_RE.match(line)
+        if match is None:
+            continue
+        value = match.group("value").strip()
+        if value and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        parsed[match.group("key")] = value
+    return parsed
+
+
+def find_env_file(
+    start: Path | None = None,
+    filename: str = ".env",
+) -> Path | None:
+    """Walk upward from ``start`` (default: cwd) looking for ``filename``."""
+
+    current = (start or Path.cwd()).resolve()
+    if current.is_file():
+        current = current.parent
+    for candidate in (current, *current.parents):
+        path = candidate / filename
+        if path.is_file():
+            return path
+    return None
+
+
+def load_dotenv(
+    path: str | Path | None = None,
+    *,
+    override: bool = False,
+    search: bool = True,
+) -> Path | None:
+    """Load KEY=VALUE pairs into ``os.environ``.
+
+    Returns the path that was loaded, or ``None`` if nothing was found.
+    """
+
+    env_path: Path | None
+    if path is not None:
+        env_path = Path(path)
+        if not env_path.is_file():
+            return None
+    elif search:
+        env_path = find_env_file()
+    else:
+        return None
+
+    if env_path is None:
+        return None
+
+    values = parse_dotenv(env_path.read_text(encoding="utf-8"))
+    for key, value in values.items():
+        if override or key not in os.environ:
+            os.environ[key] = value
+    return env_path
 
 
 def _env(name: str) -> str:
@@ -48,8 +124,15 @@ class Settings:
         return (self.bronze_bucket, self.silver_bucket, self.gold_bucket)
 
 
-def load_settings() -> Settings:
-    """Build settings from the current process environment."""
+def load_settings(
+    *,
+    env_file: str | Path | None = None,
+    load_env_file: bool = True,
+) -> Settings:
+    """Build settings from process env, optional `.env`, then defaults."""
+
+    if load_env_file:
+        load_dotenv(path=env_file, override=False, search=env_file is None)
 
     return Settings(
         aws_endpoint_url=_env("AWS_ENDPOINT_URL"),

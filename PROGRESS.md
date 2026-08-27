@@ -13,6 +13,16 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-27 22:01 IST
+- Completed: chore: Add `.env` loading helper
+- Next candidate: chore: Add `scripts/get_outputs.sh` or Python helper (P0)
+- Notes: `load_settings()` now optionally loads a discovered or explicit dotenv file without overriding process env (so Makefile / `scripts/tf_env.sh` stay authoritative). Parser is stdlib-only. Unit tests cover quotes, `export`, parent-directory discovery, and override semantics.
+
+## 2026-08-27 21:00 IST
+- Completed: chore: Make `make up/infra/seed/pipeline` fully reliable
+- Next candidate: chore: Add `.env` loading helper (P0)
+- Notes: Added docker-compose MiniStack, Terraform S3+DynamoDB, Makefile targets with health checks and Terraform output injection (`scripts/wait_healthy.sh`, `scripts/tf_env.sh`), plus local CLI runners (`health`/`seed`/`pipeline`/`query`). Full live MiniStack+Terraform apply was not executed in this sandbox.
+
 ## 2026-08-27 20:10 IST
 - Completed: chore: Finalize package layout & imports
 - Next candidate: chore: Make `make up/infra/seed/pipeline` fully reliable (P0)
@@ -22,8 +32,3 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 - Completed: chore: initial project scaffold + TODO.md + PROGRESS.md
 - Repo created: https://github.com/nuwanda94/data-lakehouse-ministack
 - Next candidate: chore: Finalize package layout & imports / Make make targets fully reliable (P0)
-
-## 2026-08-27 21:00 IST
-- Completed: chore: Make `make up/infra/seed/pipeline` fully reliable
-- Next candidate: chore: Add `.env` loading helper (P0)
-- Notes: Added docker-compose MiniStack, Terraform S3+DynamoDB, Makefile targets with health checks and Terraform output injection (`scripts/wait_healthy.sh`, `scripts/tf_env.sh`), plus local CLI runners (`health`/`seed`/`pipeline`/`query`). Full live MiniStack+Terraform apply was not executed in this sandbox.

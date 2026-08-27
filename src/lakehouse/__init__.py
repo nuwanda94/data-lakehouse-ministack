@@ -4,7 +4,7 @@ Public surface is intentionally small. Import from `lakehouse` rather than
 reaching into implementation modules from scripts or tests.
 """
 
-from lakehouse.config import Settings, load_settings
+from lakehouse.config import Settings, load_dotenv, load_settings
 
 get_settings = load_settings
 
@@ -12,6 +12,7 @@ __all__ = [
     "Settings",
     "load_settings",
     "get_settings",
+    "load_dotenv",
     "__version__",
 ]
 
