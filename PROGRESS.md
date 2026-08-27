@@ -13,10 +13,10 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
-## 2026-08-27 20:00 IST
+## 2026-08-27 20:10 IST
 - Completed: chore: Finalize package layout & imports
 - Next candidate: chore: Make `make up/infra/seed/pipeline` fully reliable (P0)
-- Notes: Introduced installable `src/lakehouse` package (config, aws clients, models, seed, pipeline, CLI) plus import/layout tests. Makefile + MiniStack/Terraform scaffold is still missing and is the next P0.
+- Notes: Restored a missing `src/lakehouse` installable package (config, aws client factory, CLI, seed/pipeline/transforms/quality packages) plus import/config/CLI unit tests and pyproject.toml. Makefile + MiniStack/Terraform targets are still absent; that is the next chore. `.env` loading remains a separate P0 item — `load_settings()` currently reads process env only.
 
 ## 2026-08-27 (initial)
 - Completed: chore: initial project scaffold + TODO.md + PROGRESS.md

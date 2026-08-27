@@ -1,4 +1,4 @@
-"""Console entry point: `lakehouse` / `python -m lakehouse`."""
+"""Minimal package entry point so `python -m lakehouse` and the console script work."""
 
 from __future__ import annotations
 
@@ -6,43 +6,41 @@ import argparse
 import json
 import sys
 
-from lakehouse import __version__, get_settings
-
-
-def _cmd_version(_: argparse.Namespace) -> int:
-    print(__version__)
-    return 0
-
-
-def _cmd_config(_: argparse.Namespace) -> int:
-    settings = get_settings()
-    payload = {
-        "version": __version__,
-        "endpoint_url": settings.endpoint_url,
-        "region": settings.region,
-        "bronze_bucket": settings.bronze_bucket,
-        "silver_bucket": settings.silver_bucket,
-        "gold_bucket": settings.gold_bucket,
-        "pipeline_runs_table": settings.pipeline_runs_table,
-        "gold_metrics_table": settings.gold_metrics_table,
-    }
-    json.dump(payload, sys.stdout, indent=2)
-    sys.stdout.write("\n")
-    return 0
-
-
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="lakehouse",
-        description="Local medallion lakehouse on MiniStack",
-    )
-    sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("version", help="Print package version").set_defaults(func=_cmd_version)
-    sub.add_parser("config", help="Print resolved settings as JSON").set_defaults(func=_cmd_config)
-    return parser
+from lakehouse import __version__, load_settings
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = build_parser()
+    parser = argparse.ArgumentParser(prog="lakehouse", description="MiniStack lakehouse CLI")
+    parser.add_argument("--version", action="store_true", help="Print package version")
+    parser.add_argument(
+        "command",
+        nargs="?",
+        choices=("settings",),
+        help="Optional command. `settings` prints the resolved configuration.",
+    )
     args = parser.parse_args(argv)
-    return int(args.func(args))
+
+    if args.version:
+        print(__version__)
+        return 0
+
+    if args.command == "settings":
+        settings = load_settings()
+        payload = {
+            "aws_endpoint_url": settings.aws_endpoint_url,
+            "aws_region": settings.aws_region,
+            "bronze_bucket": settings.bronze_bucket,
+            "silver_bucket": settings.silver_bucket,
+            "gold_bucket": settings.gold_bucket,
+            "pipeline_runs_table": settings.pipeline_runs_table,
+            "gold_metrics_table": settings.gold_metrics_table,
+        }
+        print(json.dumps(payload, indent=2))
+        return 0
+
+    parser.print_help()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

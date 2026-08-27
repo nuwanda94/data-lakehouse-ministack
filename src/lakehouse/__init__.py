@@ -1,20 +1,15 @@
-"""Medallion lakehouse ministack — local AWS (MiniStack) pipeline package.
+"""Medallion lakehouse package for the MiniStack local stack.
 
-Public layout
--------------
-lakehouse.config     settings loaded from environment / .env
-lakehouse.aws        shared boto3 session + resource factories
-lakehouse.models     typed records that cross zone boundaries
-lakehouse.seed       synthetic event generation + bronze landing
-lakehouse.pipeline   bronze → silver → gold transforms and quality gates
-lakehouse.cli        `lakehouse` console entry point
+Public surface is intentionally small. Import from `lakehouse` rather than
+reaching into implementation modules from scripts or tests.
 """
 
-from lakehouse.config import Settings, get_settings
+from lakehouse.config import Settings, load_settings
 
-__version__ = "0.1.0"
 __all__ = [
     "Settings",
-    "get_settings",
+    "load_settings",
     "__version__",
 ]
+
+__version__ = "0.1.0"

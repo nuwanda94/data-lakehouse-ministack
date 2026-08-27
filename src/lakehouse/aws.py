@@ -1,8 +1,4 @@
-"""Shared AWS / MiniStack client factory.
-
-All service clients should go through `session()` so endpoint, region, and
-credentials stay consistent across seed scripts and pipeline steps.
-"""
+"""boto3 session / client factory pointed at MiniStack or real AWS."""
 
 from __future__ import annotations
 
@@ -10,51 +6,32 @@ from functools import lru_cache
 from typing import Any
 
 import boto3
-from botocore.client import BaseClient
+from botocore.config import Config
 
-from lakehouse.config import Settings, get_settings
+from lakehouse.config import Settings, load_settings
 
 
-def _kwargs(settings: Settings) -> dict[str, Any]:
-    return {
-        "region_name": settings.region,
+def _client_kwargs(settings: Settings) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "region_name": settings.aws_region,
         "aws_access_key_id": settings.aws_access_key_id,
         "aws_secret_access_key": settings.aws_secret_access_key,
-        "endpoint_url": settings.endpoint_url,
+        "config": Config(retries={"max_attempts": 3, "mode": "standard"}),
     }
+    if settings.aws_endpoint_url:
+        kwargs["endpoint_url"] = settings.aws_endpoint_url
+    return kwargs
 
 
-@lru_cache(maxsize=1)
-def session(settings: Settings | None = None) -> boto3.Session:
-    cfg = settings or get_settings()
-    return boto3.Session(
-        region_name=cfg.region,
-        aws_access_key_id=cfg.aws_access_key_id,
-        aws_secret_access_key=cfg.aws_secret_access_key,
-    )
+def client(service: str, settings: Settings | None = None) -> Any:
+    """Return a boto3 client for `service` using lakehouse settings."""
+
+    resolved = settings or load_settings()
+    return boto3.client(service, **_client_kwargs(resolved))
 
 
-def client(service: str, settings: Settings | None = None) -> BaseClient:
-    cfg = settings or get_settings()
-    return session(cfg).client(service, endpoint_url=cfg.endpoint_url)
+@lru_cache(maxsize=8)
+def cached_client(service: str) -> Any:
+    """Process-wide client cache for CLI / seed scripts."""
 
-
-def resource(service: str, settings: Settings | None = None) -> Any:
-    cfg = settings or get_settings()
-    return session(cfg).resource(service, endpoint_url=cfg.endpoint_url)
-
-
-def s3_client(settings: Settings | None = None) -> BaseClient:
-    return client("s3", settings)
-
-
-def sqs_client(settings: Settings | None = None) -> BaseClient:
-    return client("sqs", settings)
-
-
-def dynamodb_client(settings: Settings | None = None) -> BaseClient:
-    return client("dynamodb", settings)
-
-
-def lambda_client(settings: Settings | None = None) -> BaseClient:
-    return client("lambda", settings)
+    return client(service)
