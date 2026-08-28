@@ -14,7 +14,6 @@ from typing import Any
 
 from lakehouse.config import _DEFAULTS
 
-# Terraform output name → process environment variable.
 OUTPUT_ENV_MAP: dict[str, str] = {
     "aws_endpoint_url": "AWS_ENDPOINT_URL",
     "aws_region": "AWS_DEFAULT_REGION",
@@ -23,6 +22,8 @@ OUTPUT_ENV_MAP: dict[str, str] = {
     "gold_bucket": "GOLD_BUCKET",
     "pipeline_runs_table": "PIPELINE_RUNS_TABLE",
     "gold_metrics_table": "GOLD_METRICS_TABLE",
+    "bronze_events_queue": "BRONZE_EVENTS_QUEUE",
+    "bronze_events_queue_url": "BRONZE_EVENTS_QUEUE_URL",
 }
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -114,13 +115,7 @@ def collect_outputs(
     *,
     allow_defaults: bool = True,
 ) -> dict[str, str]:
-    """Return env-var mapping from Terraform, state file, or defaults.
-
-    Precedence:
-    1. ``terraform output -json``
-    2. ``infra/terraform/terraform.tfstate``
-    3. Documented defaults (if ``allow_defaults``)
-    """
+    """Return env-var mapping from Terraform, state file, or defaults."""
 
     directory = Path(tf_dir) if tf_dir is not None else DEFAULT_TF_DIR
     resolved = _run_terraform_output(directory)
