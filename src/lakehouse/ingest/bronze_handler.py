@@ -16,27 +16,11 @@ from urllib.parse import unquote_plus
 from lakehouse.aws import client
 from lakehouse.config import Settings, load_settings
 from lakehouse.ingest.s3_events import BronzeObjectRef, extract_object_refs
-from lakehouse.pipeline.runs import new_run
+from lakehouse.pipeline.runs import complete_run, new_run, persist_run
 
 LOGGER = logging.getLogger(__name__)
 
 BRONZE_PREFIX = "events/"
-
-
-def _persist_run(ddb: Any, table: str, run: Any, *, objects: list[str]) -> None:
-    item: dict[str, Any] = {
-        "run_id": {"S": run.run_id},
-        "status": {"S": run.status},
-        "started_at": {"S": run.started_at.isoformat()},
-        "zone": {"S": run.zone or "bronze"},
-        "object_count": {"N": str(len(objects))},
-        "objects": {"S": json.dumps(objects)},
-    }
-    if run.finished_at is not None:
-        item["finished_at"] = {"S": run.finished_at.isoformat()}
-    if run.error:
-        item["error"] = {"S": run.error}
-    ddb.put_item(TableName=table, Item=item)
 
 
 def _head_or_get(s3: Any, ref: BronzeObjectRef) -> dict[str, Any]:
@@ -77,15 +61,24 @@ def ingest_bronze_event(
             continue
         accepted.append(BronzeObjectRef(bucket=ref.bucket, key=key, source=ref.source))
 
-    run = new_run(zone="bronze", status="running")
+    run = new_run(zone="bronze", status="running", step="ingest", event=event)
     object_keys = [ref.key for ref in accepted]
     if missing and not accepted:
-        run.status = "failed"
-        run.error = f"missing bronze objects: {', '.join(missing)}"
+        complete_run(
+            run,
+            status="failed",
+            error=f"missing bronze objects: {', '.join(missing)}",
+            objects=object_keys,
+            metrics={"object_count": len(object_keys), "missing": len(missing)},
+        )
     else:
-        run.status = "succeeded"
-    run.finished_at = datetime.now(tz=UTC)
-    _persist_run(ddb_client, resolved.pipeline_runs_table, run, objects=object_keys)
+        complete_run(
+            run,
+            status="succeeded",
+            objects=object_keys,
+            metrics={"object_count": len(object_keys), "missing": len(missing)},
+        )
+    persist_run(ddb_client, resolved.pipeline_runs_table, run)
 
     return {
         "run_id": run.run_id,
