@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 Zone = Literal["bronze", "silver", "gold"]
 PipelineStatus = Literal["pending", "running", "succeeded", "failed", "quality_failed"]
+PipelineStep = Literal["ingest", "silver", "quality", "gold", "pipeline"]
 
 
 class CommerceEvent(BaseModel):
@@ -33,10 +34,16 @@ class QualityResult(BaseModel):
 
 
 class PipelineRun(BaseModel):
+    """One pipeline (or zone-step) execution recorded in DynamoDB."""
+
     run_id: str
     started_at: datetime
     finished_at: datetime | None = None
     status: PipelineStatus = "pending"
     zone: Zone | None = None
+    step: PipelineStep | None = None
+    parent_run_id: str | None = None
     quality: list[QualityResult] = Field(default_factory=list)
     error: str | None = None
+    objects: list[str] = Field(default_factory=list)
+    metrics: dict[str, int | float | str] = Field(default_factory=dict)
