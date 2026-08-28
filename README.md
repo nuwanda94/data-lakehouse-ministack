@@ -6,7 +6,8 @@ on `http://localhost:4566`.
 
 The same Terraform and Python code is intended to point at real AWS later.
 Today the control plane is a Python runner (`python -m lakehouse`); Phase 2
-replaces that with Step Functions.
+replaces that with Step Functions. See
+[ADR-003](docs/adr/0003-local-orchestration-vs-step-functions.md).
 
 ## Why this exists
 
@@ -47,10 +48,11 @@ Bronze; the local runner walks Bronze → Silver → Gold and records a run.
 
 **Target path (Phase 1+):** S3 event → SQS → Lambda per zone, with an
 explicit quality gate and DynamoDB run metadata. Orchestration moves to
-Step Functions in Phase 2 (see planned ADR-003).
+Step Functions in Phase 2
+([ADR-003](docs/adr/0003-local-orchestration-vs-step-functions.md)).
 
 GitHub renders the Mermaid diagram above. A static PNG can be exported from
-the same source (`docs/architecture.png`) once the docs folder lands.
+the same source (`docs/architecture.png`) once an assets folder lands.
 
 ## Status
 
@@ -62,7 +64,7 @@ the same source (`docs/architecture.png`) once the docs folder lands.
 | `.env` + Terraform output injection | Done | `scripts/get_outputs.sh`, `lakehouse outputs` |
 | Seed / pipeline / query CLI | Done | Local Python runner |
 | README + runbook | Done | This file |
-| ADR-003 (runner vs Step Functions) | Next | Phase 0 docs |
+| ADR-003 (runner vs Step Functions) | Done | [`docs/adr/0003-...`](docs/adr/0003-local-orchestration-vs-step-functions.md) |
 | Unit tests for seed + transform | Open | Phase 0 test |
 | Event-driven Bronze Lambda | Open | Phase 1 P0 |
 | Silver / Gold Lambdas | Open | Phase 1 P0 |
@@ -188,6 +190,7 @@ src/lakehouse/
   quality/           # quality-gate hooks (Phase 1)
 infra/terraform/     # S3 zones + DynamoDB tables against MiniStack
 scripts/             # wait_healthy.sh, get_outputs.sh, tf_env.sh
+docs/adr/            # architecture decision records
 tests/
 ```
 
@@ -204,14 +207,14 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | Operability | Makefile health checks, CLI JSON, run metadata table |
 | Data quality | Planned Pandera / Great Expectations gate |
 | Event-driven ingest | Planned S3 → SQS → Lambda |
-| Orchestration | Python runner now; Step Functions in Phase 2 |
+| Orchestration | Python runner now; Step Functions in Phase 2 ([ADR-003](docs/adr/0003-local-orchestration-vs-step-functions.md)) |
 | Analytics surface | Planned Glue Catalog + Athena + optional dbt |
 | Platform hygiene | pytest, pre-commit, conventional commits |
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
-| --- | --- | --- |
+| --- | --- |
 | `make up` hangs / health fails | Docker not running or port 4566 taken | `docker ps`; change compose port only if you also change `AWS_ENDPOINT_URL` |
 | `terraform apply` cannot reach AWS | MiniStack not up | `make up` first; health script is a prerequisite of `make infra` |
 | Seed writes to unexpected bucket | Stale env / missing outputs | `make outputs`; avoid exporting old bucket names in your shell |

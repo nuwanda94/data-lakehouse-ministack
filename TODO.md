@@ -9,7 +9,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] chore: Add `.env` loading helper
 - [x] chore: Add `scripts/get_outputs.sh` or Python helper
 - [x] docs: Expand README with exact run instructions & screenshots
-- [ ] docs: Add ADR-003: Local orchestration vs Step Functions
+- [x] docs: Add ADR-003: Local orchestration vs Step Functions
 - [ ] test: Expand unit tests for seed + transform
 
 ## Phase 1 — Core Medallion Pipeline (P0)

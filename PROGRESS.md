@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-28 12:35 IST
+- Completed: docs: Add ADR-003: Local orchestration vs Step Functions
+- Next candidate: test: Expand unit tests for seed + transform (P0)
+- Notes: Accepted decision — Python runner is the v0.1 control plane; Step Functions replace/augment it in Phase 2 once zone logic is Lambda-packaged. ADR lives at `docs/adr/0003-local-orchestration-vs-step-functions.md`. Zone modules must stay orchestrator-agnostic; `ops/pipeline.py` must not grow a homegrown DAG.
+
 ## 2026-08-28 09:03 IST
 - Completed: docs: Expand README with exact run instructions & screenshots
 - Next candidate: docs: Add ADR-003: Local orchestration vs Step Functions (P0)
