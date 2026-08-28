@@ -22,6 +22,8 @@ def _settings() -> Settings:
         gold_bucket="g",
         pipeline_runs_table="runs",
         gold_metrics_table="metrics",
+        bronze_events_queue="bronze-events",
+        bronze_events_queue_url="",
     )
 
 
