@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-28 09:03 IST
+- Completed: docs: Expand README with exact run instructions & screenshots
+- Next candidate: docs: Add ADR-003: Local orchestration vs Step Functions (P0)
+- Notes: README now has a Mermaid architecture diagram, status table, exact `make` / `python -m lakehouse` loop, config precedence, troubleshooting, and a hiring-manager skills map. Static PNG export (`docs/architecture.png`) is deferred until a docs/ assets folder is added; GitHub renders the Mermaid source.
+
 ## 2026-08-27 23:01 IST
 - Completed: chore: Add `scripts/get_outputs.sh` or Python helper
 - Next candidate: docs: Expand README with exact run instructions & screenshots (P0)
