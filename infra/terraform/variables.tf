@@ -38,3 +38,8 @@ variable "gold_metrics_table" {
   type    = string
   default = "lakehouse-local-gold-metrics"
 }
+
+variable "bronze_events_queue" {
+  type    = string
+  default = "lakehouse-local-bronze-events"
+}

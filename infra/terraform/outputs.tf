@@ -25,3 +25,11 @@ output "pipeline_runs_table" {
 output "gold_metrics_table" {
   value = aws_dynamodb_table.gold_metrics.name
 }
+
+output "bronze_events_queue" {
+  value = aws_sqs_queue.bronze_events.name
+}
+
+output "bronze_events_queue_url" {
+  value = aws_sqs_queue.bronze_events.url
+}

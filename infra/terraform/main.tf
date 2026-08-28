@@ -34,3 +34,9 @@ resource "aws_dynamodb_table" "gold_metrics" {
     type = "S"
   }
 }
+
+resource "aws_sqs_queue" "bronze_events" {
+  name                       = var.bronze_events_queue
+  message_retention_seconds  = 86400
+  visibility_timeout_seconds = 60
+}
