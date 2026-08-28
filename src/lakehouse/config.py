@@ -26,6 +26,8 @@ _DEFAULTS = {
     "GOLD_BUCKET": "lakehouse-local-gold",
     "PIPELINE_RUNS_TABLE": "lakehouse-local-pipeline-runs",
     "GOLD_METRICS_TABLE": "lakehouse-local-gold-metrics",
+    "BRONZE_EVENTS_QUEUE": "lakehouse-local-bronze-events",
+    "BRONZE_EVENTS_QUEUE_URL": "",
 }
 
 _LINE_RE = re.compile(
@@ -118,6 +120,8 @@ class Settings:
     gold_bucket: str
     pipeline_runs_table: str
     gold_metrics_table: str
+    bronze_events_queue: str
+    bronze_events_queue_url: str = ""
 
     @property
     def buckets(self) -> tuple[str, str, str]:
@@ -144,6 +148,10 @@ def load_settings(
         gold_bucket=_env("GOLD_BUCKET"),
         pipeline_runs_table=_env("PIPELINE_RUNS_TABLE"),
         gold_metrics_table=_env("GOLD_METRICS_TABLE"),
+        bronze_events_queue=_env("BRONZE_EVENTS_QUEUE"),
+        bronze_events_queue_url=os.environ.get(
+            "BRONZE_EVENTS_QUEUE_URL", _DEFAULTS["BRONZE_EVENTS_QUEUE_URL"]
+        ),
     )
 
 

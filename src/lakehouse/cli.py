@@ -15,7 +15,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("settings", "health", "seed", "pipeline", "query", "outputs"),
+        choices=("settings", "health", "seed", "pipeline", "query", "outputs", "ingest"),
         help="Command to run.",
     )
     parser.add_argument("--count", type=int, default=50, help="Events to seed (seed only)")
@@ -47,6 +47,7 @@ def main(argv: list[str] | None = None) -> int:
             "gold_bucket": settings.gold_bucket,
             "pipeline_runs_table": settings.pipeline_runs_table,
             "gold_metrics_table": settings.gold_metrics_table,
+            "bronze_events_queue": settings.bronze_events_queue,
         }
         print(json.dumps(payload, indent=2))
         return 0
@@ -84,6 +85,13 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.ops.pipeline import run_pipeline
 
         result = run_pipeline()
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "ingest":
+        from lakehouse.ingest.bronze_handler import drain_bronze_queue
+
+        result = drain_bronze_queue()
         print(json.dumps(result, indent=2))
         return 0
 
