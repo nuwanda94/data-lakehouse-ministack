@@ -24,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
             "outputs",
             "ingest",
             "silver",
+            "quality",
             "gold",
         ),
         help="Command to run.",
@@ -37,6 +38,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--json", action="store_true", dest="as_json", help="JSON output (outputs)")
     parser.add_argument("--write-env", default=None, help="Write dotenv file (outputs only)")
+    parser.add_argument(
+        "--on-fail",
+        choices=("fail", "quarantine"),
+        default="fail",
+        help="Quality gate action when checks fail (quality only)",
+    )
     args = parser.parse_args(argv)
 
     if args.version:
@@ -110,6 +117,17 @@ def main(argv: list[str] | None = None) -> int:
 
         result = run_silver()
         print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "quality":
+        from lakehouse.quality.handler import run_quality
+
+        result = run_quality(on_fail=args.on_fail)
+        print(json.dumps(result, indent=2))
+        if result.get("status") == "quality_failed":
+            return 2
+        if result.get("status") == "failed":
+            return 1
         return 0
 
     if args.command == "gold":

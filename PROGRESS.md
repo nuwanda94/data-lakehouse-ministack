@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-28 21:00 IST
+- Completed: feat: Quality gate as a first-class step
+- Next candidate: feat: Pipeline run metadata & status tracking (P0)
+- Notes: Added `lakehouse.quality.gate` (`evaluate_quality` with named checks, fail-ratio threshold, fail vs quarantine action) and `lakehouse.quality.handler` that reads Silver `events/`, writes a `quality/dt=.../run_id=....json` report, records DynamoDB run status (`quality_failed` when the gate fails), and optionally quarantines bad rows. Local path: `python -m lakehouse quality` / `make quality`. Pandera/GE remain optional; the default gate is Pydantic + explicit checks so Lambda zips stay small.
+
 ## 2026-08-28 20:00 IST
 - Completed: feat: Gold aggregation Lambda
 - Next candidate: feat: Quality gate as a first-class step (P0)

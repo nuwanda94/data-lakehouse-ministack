@@ -17,7 +17,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Bronze event-driven ingestion via S3 → SQS → Lambda
 - [x] feat: Silver transform Lambda
 - [x] feat: Gold aggregation Lambda
-- [ ] feat: Quality gate as a first-class step
+- [x] feat: Quality gate as a first-class step
 - [ ] feat: Pipeline run metadata & status tracking
 - [ ] chore: Lambda packaging & deployment via Terraform
 - [ ] chore: Wire S3 event notifications or EventBridge
