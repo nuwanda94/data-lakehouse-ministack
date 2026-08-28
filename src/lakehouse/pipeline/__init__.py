@@ -3,6 +3,7 @@
 from lakehouse.pipeline.bronze import bronze_key
 from lakehouse.pipeline.gold import gold_key
 from lakehouse.pipeline.quality import run_quality_checks
+from lakehouse.pipeline.runs import complete_run, new_run, persist_run
 from lakehouse.pipeline.silver import quarantine_key, silver_key
 
 __all__ = [
@@ -11,4 +12,7 @@ __all__ = [
     "quarantine_key",
     "gold_key",
     "run_quality_checks",
+    "new_run",
+    "complete_run",
+    "persist_run",
 ]
