@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-28 12:48 IST
+- Completed: test: Expand unit tests for seed + transform
+- Next candidate: feat: Bronze event-driven ingestion via S3 → SQS → Lambda (P0)
+- Notes: Added `lakehouse.transforms.events` (parse/quarantine, late-event lookback, gold aggregate) plus `tests/test_seed.py` and `tests/test_transforms.py`. Coverage includes empty batches, all-invalid rows, midnight-crossing seed partitions, and late arrivals tagged without quarantine. Local runner still inlines aggregation; next work should land the Bronze S3→SQS→Lambda path.
+
 ## 2026-08-28 12:36 IST
 - Completed: docs: Add ADR-003: Local orchestration vs Step Functions
 - Next candidate: test: Expand unit tests for seed + transform (P0)
