@@ -26,10 +26,13 @@ def main(argv: list[str] | None = None) -> int:
             "silver",
             "quality",
             "gold",
+            "runs",
         ),
         help="Command to run.",
     )
     parser.add_argument("--count", type=int, default=50, help="Events to seed (seed only)")
+    parser.add_argument("--run-id", default=None, help="Pipeline run id (runs only)")
+    parser.add_argument("--limit", type=int, default=25, help="Max runs to list (runs only)")
     parser.add_argument("--tf-dir", default=None, help="Terraform directory (outputs only)")
     parser.add_argument(
         "--export",
@@ -142,6 +145,15 @@ def main(argv: list[str] | None = None) -> int:
 
         result = query_gold()
         print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "runs":
+        from lakehouse.ops.runs import query_runs
+
+        result = query_runs(run_id=args.run_id, limit=args.limit)
+        print(json.dumps(result, indent=2))
+        if args.run_id and not result.get("found"):
+            return 1
         return 0
 
     parser.print_help()
