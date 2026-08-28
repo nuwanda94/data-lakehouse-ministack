@@ -18,7 +18,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health infra infra-plan destroy seed pipeline ingest query outputs test clean
+.PHONY: help install up down logs health infra infra-plan destroy seed pipeline ingest silver query outputs test clean
 
 help:
 	@printf '%s\n' \
@@ -31,6 +31,7 @@ help:
 	  '  make seed      write synthetic events to bronze' \
 	  '  make pipeline  bronze -> silver -> gold (local runner)' \
 	  '  make ingest    drain Bronze SQS queue through the ingest handler' \
+	  '  make silver    cleanse Bronze → Silver (+ quarantine) via the Silver handler' \
 	  '  make query     print gold object + metrics summary' \
 	  '  make test      unit tests' \
 	  '  make down      stop MiniStack' \
@@ -88,6 +89,10 @@ pipeline:
 ingest:
 	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse ingest
+
+silver:
+	@$(ROOT)/scripts/wait_healthy.sh
+	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse silver
 
 query:
 	@$(ROOT)/scripts/wait_healthy.sh
