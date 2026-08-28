@@ -15,7 +15,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 ## Phase 1 — Core Medallion Pipeline (P0)
 
 - [x] feat: Bronze event-driven ingestion via S3 → SQS → Lambda
-- [ ] feat: Silver transform Lambda
+- [x] feat: Silver transform Lambda
 - [ ] feat: Gold aggregation Lambda
 - [ ] feat: Quality gate as a first-class step
 - [ ] feat: Pipeline run metadata & status tracking
