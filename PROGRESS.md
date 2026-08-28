@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-28 23:00 IST
+- Completed: feat: Pipeline run metadata & status tracking
+- Next candidate: chore: Lambda packaging & deployment via Terraform (P0)
+- Notes: Centralized DynamoDB run records in `lakehouse.pipeline.runs` (`new_run` / `complete_run` / `persist_run` / `get_run` / `list_runs`). Zone handlers (ingest, silver, quality, gold) and the local runner now share one item shape: run_id, status, zone, step, timestamps, error, objects, flattened metrics, quality JSON. `run_id` can be supplied via event payload or `LAKEHOUSE_RUN_ID` so steps stay correlated. CLI/Make: `python -m lakehouse runs` / `make runs`.
+
 ## 2026-08-28 21:00 IST
 - Completed: feat: Quality gate as a first-class step
 - Next candidate: feat: Pipeline run metadata & status tracking (P0)
