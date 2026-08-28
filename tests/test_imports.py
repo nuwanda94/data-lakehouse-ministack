@@ -21,6 +21,8 @@ PUBLIC_MODULES = [
     "lakehouse.ingest",
     "lakehouse.ingest.s3_events",
     "lakehouse.ingest.bronze_handler",
+    "lakehouse.silver",
+    "lakehouse.silver.handler",
     "lakehouse.ops",
     "lakehouse.ops.seed",
     "lakehouse.ops.pipeline",
@@ -43,11 +45,12 @@ def test_package_version_and_exports() -> None:
 
 
 def test_seed_and_pipeline_reexports() -> None:
-    from lakehouse.pipeline import bronze_key, gold_key, run_quality_checks, silver_key
+    from lakehouse.pipeline import bronze_key, gold_key, quarantine_key, run_quality_checks, silver_key
     from lakehouse.seed import generate_events
 
     assert callable(generate_events)
     assert callable(bronze_key)
     assert callable(silver_key)
+    assert callable(quarantine_key)
     assert callable(gold_key)
     assert callable(run_quality_checks)

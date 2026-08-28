@@ -15,7 +15,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "command",
         nargs="?",
-        choices=("settings", "health", "seed", "pipeline", "query", "outputs", "ingest"),
+        choices=(
+            "settings",
+            "health",
+            "seed",
+            "pipeline",
+            "query",
+            "outputs",
+            "ingest",
+            "silver",
+        ),
         help="Command to run.",
     )
     parser.add_argument("--count", type=int, default=50, help="Events to seed (seed only)")
@@ -92,6 +101,13 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.ingest.bronze_handler import drain_bronze_queue
 
         result = drain_bronze_queue()
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "silver":
+        from lakehouse.silver.handler import run_silver
+
+        result = run_silver()
         print(json.dumps(result, indent=2))
         return 0
 
