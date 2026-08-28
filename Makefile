@@ -18,7 +18,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health infra infra-plan destroy seed pipeline ingest silver quality gold query outputs test clean
+.PHONY: help install up down logs health infra infra-plan destroy seed pipeline ingest silver quality gold query runs outputs test clean
 
 help:
 	@printf '%s\n' \
@@ -35,6 +35,7 @@ help:
 	  '  make quality   run the Silver quality gate (fail or quarantine)' \
 	  '  make gold      aggregate Silver → Gold metrics via the Gold handler' \
 	  '  make query     print gold object + metrics summary' \
+	  '  make runs      list pipeline run metadata from DynamoDB' \
 	  '  make test      unit tests' \
 	  '  make down      stop MiniStack' \
 	  '  make destroy   terraform destroy (keeps MiniStack running)' \
@@ -107,6 +108,10 @@ gold:
 query:
 	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse query
+
+runs:
+	@$(ROOT)/scripts/wait_healthy.sh
+	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse runs
 
 test:
 	$(PYTHON) -m pytest $(ROOT)/tests
