@@ -23,6 +23,8 @@ PUBLIC_MODULES = [
     "lakehouse.ingest.bronze_handler",
     "lakehouse.silver",
     "lakehouse.silver.handler",
+    "lakehouse.gold",
+    "lakehouse.gold.handler",
     "lakehouse.ops",
     "lakehouse.ops.seed",
     "lakehouse.ops.pipeline",

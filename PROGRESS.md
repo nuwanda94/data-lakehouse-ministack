@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-28 20:00 IST
+- Completed: feat: Gold aggregation Lambda
+- Next candidate: feat: Quality gate as a first-class step (P0)
+- Notes: Added `lakehouse.gold` — Lambda `handler` + `transform_gold` that reads Silver JSON (event-driven S3/SQS refs or batch list under `events/`), runs `aggregate_gold`, writes Hive-partitioned Gold JSON plus DynamoDB gold-metrics rows, and records run metadata. Local path: `python -m lakehouse gold` / `make gold`. Packaging the function as a Terraform Lambda zip remains the later chore.
+
 ## 2026-08-28 19:05 IST
 - Completed: feat: Silver transform Lambda
 - Next candidate: feat: Gold aggregation Lambda (P0) or feat: Quality gate as a first-class step (P0)

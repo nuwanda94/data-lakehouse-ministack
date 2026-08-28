@@ -24,6 +24,7 @@ def main(argv: list[str] | None = None) -> int:
             "outputs",
             "ingest",
             "silver",
+            "gold",
         ),
         help="Command to run.",
     )
@@ -108,6 +109,13 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.silver.handler import run_silver
 
         result = run_silver()
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "gold":
+        from lakehouse.gold.handler import run_gold
+
+        result = run_gold()
         print(json.dumps(result, indent=2))
         return 0
 
