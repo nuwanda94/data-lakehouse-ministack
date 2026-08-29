@@ -10,6 +10,8 @@ locals {
     GOLD_METRICS_TABLE      = aws_dynamodb_table.gold_metrics.name
     BRONZE_EVENTS_QUEUE     = aws_sqs_queue.bronze_events.name
     BRONZE_EVENTS_QUEUE_URL = aws_sqs_queue.bronze_events.url
+    BRONZE_EVENTS_DLQ       = aws_sqs_queue.bronze_events_dlq.name
+    BRONZE_EVENTS_DLQ_URL   = aws_sqs_queue.bronze_events_dlq.url
   }
   lambda_functions = {
     ingest = {
@@ -112,8 +114,12 @@ resource "aws_iam_role_policy" "lambda" {
           "sqs:GetQueueAttributes",
           "sqs:GetQueueUrl",
           "sqs:ChangeMessageVisibility",
+          "sqs:SendMessage",
         ]
-        Resource = [aws_sqs_queue.bronze_events.arn]
+        Resource = [
+          aws_sqs_queue.bronze_events.arn,
+          aws_sqs_queue.bronze_events_dlq.arn,
+        ]
       }
     ]
   })

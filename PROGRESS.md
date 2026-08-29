@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-29 23:00 IST
+- Completed: feat: Dead-letter handling & reprocessing
+- Next candidate: feat: Idempotency keys & exactly-once semantics (P1)
+- Notes: Bronze events queue now has a Terraform DLQ + redrive policy (`maxReceiveCount=3`). Local drain copies failed messages onto the DLQ. `python -m lakehouse dlq` / `redrive` and `make dlq` / `make redrive` move poison payloads back onto the source queue. See `docs/dlq.md`.
+
 ## 2026-08-29 22:00 IST
 - Completed: feat: Step Functions state machine
 - Next candidate: feat: Dead-letter handling & reprocessing (P1)
