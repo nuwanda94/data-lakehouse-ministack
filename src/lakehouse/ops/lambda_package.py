@@ -114,3 +114,26 @@ def package(
     compileall.compile_dir(str(dest_root / "lakehouse"), quiet=1)
     prune_build_dir(dest_root)
     return write_zip(dest_root, zip_path)
+
+
+def build_lambda_zip(
+    *,
+    out: Path | None = None,
+    vendor: bool = True,
+    build_dir: Path | None = None,
+    python: str | None = None,
+    source: Path | None = None,
+) -> Path:
+    """CLI-facing wrapper used by ``scripts/package_lambda.py``.
+
+    Maps ``out`` → ``zip_path`` for the underlying ``package`` helper.
+    """
+
+    zip_path = out or DEFAULT_ZIP
+    return package(
+        build_dir=build_dir or DEFAULT_BUILD_DIR,
+        zip_path=zip_path,
+        vendor=vendor,
+        python=python,
+        source=source,
+    )
