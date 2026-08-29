@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold sfn sfn-def query runs outputs test test-integration ci lint pre-commit clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold sfn sfn-def query runs outputs reprocess test test-integration ci lint pre-commit clean
 
 help:
 	@printf '%s\n' \
@@ -40,6 +40,7 @@ help:
 	  '  make sfn-def   print the medallion ASL definition' \
 	  '  make query     print gold object + metrics summary' \
 	  '  make runs      list pipeline run metadata from DynamoDB' \
+	  '  make reprocess rebuild Gold for LOOKBACK_DAYS (late arrivals)' \
 	  '  make test      unit + hermetic zone-path tests' \
 	  '  make test-integration  live MiniStack Bronze to Silver to Gold' \
 	  '  make lint      ruff check + format check' \
@@ -131,6 +132,13 @@ query:
 runs:
 	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse runs
+
+LOOKBACK_DAYS ?= 2
+AS_OF ?=
+reprocess:
+	@bash $(ROOT)/scripts/wait_healthy.sh
+	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; \
+	  $(PYTHON) -m lakehouse reprocess --lookback-days $(LOOKBACK_DAYS) $(if $(AS_OF),--as-of $(AS_OF),)
 
 test:
 	$(PYTHON) -m pytest $(ROOT)/tests -m "not integration"
