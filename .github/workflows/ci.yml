@@ -18,7 +18,7 @@ env:
   AWS_ACCESS_KEY_ID: test
   AWS_SECRET_ACCESS_KEY: test
   AWS_EC2_METADATA_DISABLED: "true"
-  HEALTH_TIMEOUT_SECONDS: "90"
+  HEALTH_TIMEOUT_SECONDS: "180"
   PYTHONUNBUFFERED: "1"
 
 jobs:
@@ -91,7 +91,14 @@ jobs:
       - name: Install package
         run: python -m pip install --upgrade pip && pip install -e ".[dev]"
       - name: Start MiniStack
-        run: make up
+        env:
+          HEALTH_TIMEOUT_SECONDS: "180"
+        run: |
+          set -euxo pipefail
+          docker version
+          docker compose version
+          make up
+          curl -sS -o /dev/null -w "gateway HTTP %{http_code}\n" http://localhost:4566 || true
       - name: Apply Terraform
         run: make infra
       - name: Seed Bronze
