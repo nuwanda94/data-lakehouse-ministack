@@ -30,6 +30,7 @@ _DEFAULTS = {
     "BRONZE_EVENTS_QUEUE_URL": "",
     "BRONZE_EVENTS_DLQ": "lakehouse-local-bronze-events-dlq",
     "BRONZE_EVENTS_DLQ_URL": "",
+    "LOOKBACK_DAYS": "2",
 }
 
 _LINE_RE = re.compile(r"^(?:export\s+)?(?P<key>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?P<value>.*)$")
@@ -57,7 +58,7 @@ def find_env_file(
     start: Path | None = None,
     filename: str = ".env",
 ) -> Path | None:
-    """Walk upward from ``start`` (default: cwd) looking for ``filename``."""
+    """Walk upward from ``start`` (default: cwd) looking for ``filename`."""
 
     current = (start or Path.cwd()).resolve()
     if current.is_file():
@@ -120,10 +121,17 @@ class Settings:
     bronze_events_queue_url: str
     bronze_events_dlq: str = "lakehouse-local-bronze-events-dlq"
     bronze_events_dlq_url: str = ""
+    lookback_days: int = 2
 
     @property
     def buckets(self) -> tuple[str, str, str]:
         return (self.bronze_bucket, self.silver_bucket, self.gold_bucket)
+
+
+def _lookback_days(raw: str | None) -> int:
+    from lakehouse.pipeline.late import parse_lookback_days
+
+    return parse_lookback_days(raw, default=2)
 
 
 def load_settings(
@@ -191,6 +199,7 @@ def load_settings(
             "BRONZE_EVENTS_DLQ_URL", _DEFAULTS["BRONZE_EVENTS_DLQ_URL"]
         )
         or "",
+        lookback_days=_lookback_days(os.environ.get("LOOKBACK_DAYS", _DEFAULTS["LOOKBACK_DAYS"])),
     )
 
 
