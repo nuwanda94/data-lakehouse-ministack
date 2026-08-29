@@ -1,6 +1,7 @@
 """Local runners used by `make seed/pipeline/query/health`."""
 
 from lakehouse.ops.health import check_health
+from lakehouse.ops.lambda_package import package as package_lambda
 from lakehouse.ops.outputs import collect_outputs
 from lakehouse.ops.pipeline import run_pipeline
 from lakehouse.ops.query import query_gold
@@ -14,4 +15,5 @@ __all__ = [
     "query_gold",
     "query_runs",
     "collect_outputs",
+    "package_lambda",
 ]

@@ -11,6 +11,7 @@ TF_DIR := $(ROOT)/infra/terraform
 PYTHON ?= python3
 PIP ?= $(PYTHON) -m pip
 ENDPOINT ?= http://localhost:4566
+LAMBDA_ZIP := $(ROOT)/build/lambda/lakehouse.zip
 
 export AWS_ENDPOINT_URL ?= $(ENDPOINT)
 export AWS_DEFAULT_REGION ?= us-east-1
@@ -18,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health infra infra-plan destroy seed pipeline ingest silver quality gold query runs outputs test clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold query runs outputs test clean
 
 help:
 	@printf '%s\n' \
@@ -26,7 +27,8 @@ help:
 	  '  make install   editable install of src/lakehouse (+ dev extras)' \
 	  '  make up        start MiniStack and wait until healthy' \
 	  '  make health    probe MiniStack + list buckets/tables' \
-	  '  make infra     terraform apply buckets + DynamoDB tables' \
+	  '  make package   zip lakehouse + pydantic for Lambda deploy' \
+	  '  make infra     terraform apply buckets + DynamoDB + Lambdas' \
 	  '  make outputs   print Terraform outputs as KEY=value env vars' \
 	  '  make seed      write synthetic events to bronze' \
 	  '  make pipeline  bronze -> silver -> gold (local runner)' \
@@ -60,13 +62,16 @@ health:
 	@$(ROOT)/scripts/wait_healthy.sh
 	@$(PYTHON) -m lakehouse health
 
-infra-plan:
+package:
+	$(PYTHON) $(ROOT)/scripts/package_lambda.py --out $(LAMBDA_ZIP)
+
+infra-plan: package
 	@command -v terraform >/dev/null || { echo "ERROR: terraform is required for make infra" >&2; exit 1; }
 	@$(ROOT)/scripts/wait_healthy.sh
 	cd $(TF_DIR) && terraform init -input=false
 	cd $(TF_DIR) && terraform plan -input=false -out=tfplan
 
-infra:
+infra: package
 	@command -v terraform >/dev/null || { echo "ERROR: terraform is required for make infra" >&2; exit 1; }
 	@$(ROOT)/scripts/wait_healthy.sh
 	cd $(TF_DIR) && terraform init -input=false
@@ -117,4 +122,4 @@ test:
 	$(PYTHON) -m pytest $(ROOT)/tests
 
 clean: down
-	rm -rf $(TF_DIR)/.terraform $(TF_DIR)/terraform.tfstate $(TF_DIR)/terraform.tfstate.backup $(TF_DIR)/tfplan
+	rm -rf $(TF_DIR)/.terraform $(TF_DIR)/terraform.tfstate $(TF_DIR)/terraform.tfstate.backup $(TF_DIR)/tfplan $(ROOT)/build/lambda

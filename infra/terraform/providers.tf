@@ -20,6 +20,7 @@ provider "aws" {
       sts      = var.aws_endpoint_url
       sqs      = var.aws_endpoint_url
       lambda   = var.aws_endpoint_url
+      logs     = var.aws_endpoint_url
     }
   }
 }

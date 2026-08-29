@@ -33,3 +33,23 @@ output "bronze_events_queue" {
 output "bronze_events_queue_url" {
   value = aws_sqs_queue.bronze_events.url
 }
+
+output "lambda_role_arn" {
+  value = aws_iam_role.lambda.arn
+}
+
+output "lambda_ingest_name" {
+  value = aws_lambda_function.zone["ingest"].function_name
+}
+
+output "lambda_silver_name" {
+  value = aws_lambda_function.zone["silver"].function_name
+}
+
+output "lambda_quality_name" {
+  value = aws_lambda_function.zone["quality"].function_name
+}
+
+output "lambda_gold_name" {
+  value = aws_lambda_function.zone["gold"].function_name
+}

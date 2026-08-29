@@ -43,3 +43,15 @@ variable "bronze_events_queue" {
   type    = string
   default = "lakehouse-local-bronze-events"
 }
+
+variable "lambda_runtime" {
+  type        = string
+  description = "Lambda runtime shared by zone functions."
+  default     = "python3.12"
+}
+
+variable "lambda_zip_path" {
+  type        = string
+  description = "Path to the packaged lakehouse Lambda zip. Empty uses ../../build/lambda/lakehouse.zip."
+  default     = ""
+}

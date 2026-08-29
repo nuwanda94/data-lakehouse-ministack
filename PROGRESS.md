@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-29 10:35 IST
+- Completed: chore: Lambda packaging & deployment via Terraform
+- Next candidate: chore: Wire S3 event notifications or EventBridge (P0)
+- Notes: Added `lakehouse.ops.lambda_package` + `scripts/package_lambda.py` to zip `src/lakehouse` (optional pydantic vendor). Terraform now creates a shared IAM role, CloudWatch log groups, and four zone Lambdas (`ingest` / `silver` / `quality` / `gold`) from `build/lambda/lakehouse.zip`, with env vars from bucket/table/queue outputs. Ingest is subscribed to the Bronze SQS queue via event-source mapping. `make package` runs before `make infra`. S3/EventBridge object notifications are intentionally left for the next chore.
+
 ## 2026-08-28 23:00 IST
 - Completed: feat: Pipeline run metadata & status tracking
 - Next candidate: chore: Lambda packaging & deployment via Terraform (P0)
