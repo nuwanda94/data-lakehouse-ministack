@@ -22,3 +22,11 @@ def test_outputs_defaults_json(tmp_path, capsys: object) -> None:
     assert main(["outputs", "--tf-dir", str(empty), "--json"]) == 0
     captured = capsys.readouterr()  # type: ignore[attr-defined]
     assert "lakehouse-local-bronze" in captured.out
+
+
+def test_sfn_def_prints_asl(capsys: object) -> None:
+    assert main(["sfn-def"]) == 0
+    captured = capsys.readouterr()  # type: ignore[attr-defined]
+    assert "IngestBronze" in captured.out
+    assert "QualityChoice" in captured.out
+    assert "AggregateGold" in captured.out

@@ -29,6 +29,8 @@ PUBLIC_MODULES = [
     "lakehouse.quality",
     "lakehouse.quality.gate",
     "lakehouse.quality.handler",
+    "lakehouse.orchestration",
+    "lakehouse.orchestration.sfn",
     "lakehouse.ops",
     "lakehouse.ops.seed",
     "lakehouse.ops.pipeline",
@@ -56,6 +58,7 @@ def test_package_version_and_exports() -> None:
 def test_seed_and_pipeline_reexports() -> None:
     from lakehouse.contracts import load_all_contracts, load_contract
     from lakehouse.ops import expected_notification, package_lambda
+    from lakehouse.orchestration import build_definition, run_sfn_local
     from lakehouse.pipeline import (
         bronze_key,
         gold_key,
@@ -82,3 +85,5 @@ def test_seed_and_pipeline_reexports() -> None:
     assert callable(expected_notification)
     assert callable(load_contract)
     assert callable(load_all_contracts)
+    assert callable(build_definition)
+    assert callable(run_sfn_local)

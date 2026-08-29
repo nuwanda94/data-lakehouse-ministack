@@ -27,6 +27,11 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("gold", help="Aggregate Silver → Gold metrics")
     sub.add_parser("query", help="Print Gold summary")
     sub.add_parser("runs", help="List pipeline runs from DynamoDB")
+    sub.add_parser(
+        "sfn",
+        help="Walk the Step Functions graph locally (ingest → silver → quality → gold)",
+    )
+    sub.add_parser("sfn-def", help="Print the medallion Amazon States Language definition")
 
     p_settings = sub.add_parser("settings", help="Print resolved settings as JSON")
     p_settings.add_argument("--no-dotenv", action="store_true")
@@ -83,8 +88,6 @@ def main(argv: list[str] | None = None) -> int:
 
         report = check_health()
         print(json.dumps(report, indent=2))
-        # Partial service errors are warnings; only fail when nothing is reachable
-        # (check_health already raises if both S3 and DynamoDB are down).
         if report.get("errors"):
             print("WARNING: partial health failure", file=sys.stderr)
         return 0
@@ -130,6 +133,19 @@ def main(argv: list[str] | None = None) -> int:
         result = transform_gold(None)
         print(json.dumps(result, indent=2))
         return 0 if result.get("status") != "failed" else 1
+
+    if args.command == "sfn":
+        from lakehouse.orchestration.sfn import run_sfn_local
+
+        result = run_sfn_local(None)
+        print(json.dumps(result, indent=2, default=str))
+        return 0 if result.get("status") == "succeeded" else 1
+
+    if args.command == "sfn-def":
+        from lakehouse.orchestration.sfn import definition_json
+
+        sys.stdout.write(definition_json())
+        return 0
 
     if args.command == "query":
         from lakehouse.ops.query import query_gold
