@@ -68,10 +68,13 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Silver / Gold Lambdas | Done | handlers + Terraform zip |
 | Quality gate | Done | `lakehouse.quality.gate` |
 | Bronze → Silver → Gold integration tests | Done | hermetic + live MiniStack marker |
+| Zone contracts + data dictionary | Done | [`configs/contracts/`](configs/contracts/) · [`docs/data-dictionary.md`](docs/data-dictionary.md) |
 | Glue / Athena / dbt | Later | Phase 3 |
+| Full CI vs MiniStack | Later | Phase 4 P0 |
 
 Live checklist: [`TODO.md`](TODO.md). Run log: [`PROGRESS.md`](PROGRESS.md).
 ADR index: [`docs/adr/README.md`](docs/adr/README.md).
+Zone contracts: [`configs/contracts/`](configs/contracts/).
 
 ## Prerequisites
 
@@ -185,14 +188,17 @@ src/lakehouse/
   aws.py             # boto3 client factory (endpoint-aware)
   cli.py             # python -m lakehouse
   models.py          # shared dataclasses
+  contracts.py       # load configs/contracts/*.json
   ops/               # health, seed, pipeline, query, terraform outputs
   seed/              # synthetic Bronze events
   pipeline/          # zone steps + run records + quality stub
   transforms/        # Bronze → Silver → Gold transforms
   quality/           # quality-gate hooks (Phase 1)
 infra/terraform/     # S3 zones + DynamoDB tables against MiniStack
+configs/contracts/   # zone field lists + partition keys
 scripts/             # wait_healthy.sh, get_outputs.sh, tf_env.sh
 docs/adr/            # architecture decision records
+docs/data-dictionary.md
 tests/
 ```
 
@@ -203,12 +209,13 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | Skill | Where it shows up |
 | --- | --- |
 | Medallion modeling | Bronze / Silver / Gold buckets and transforms |
+| Zone contracts | `configs/contracts/` + `docs/data-dictionary.md` |
 | Local-first AWS | MiniStack + endpoint-aware boto3 |
 | IaC | Terraform providers pointed at `:4566` |
 | Config discipline | `.env` vs process env vs Terraform outputs |
 | Operability | Makefile health checks, CLI JSON, run metadata table |
-| Data quality | Planned Pandera / Great Expectations gate |
-| Event-driven ingest | Planned S3 → SQS → Lambda |
+| Data quality | Named quality gate (`lakehouse.quality.gate`) |
+| Event-driven ingest | S3 → SQS → ingest Lambda |
 | Orchestration | Python runner now; Step Functions in Phase 2 ([ADR-003](docs/adr/003-local-orchestration-vs-step-functions.md)) |
 | Analytics surface | Planned Glue Catalog + Athena + optional dbt |
 | Platform hygiene | pytest, pre-commit, conventional commits |
