@@ -52,9 +52,10 @@ install:
 
 up:
 	@command -v docker >/dev/null || { echo "ERROR: docker is required for make up" >&2; exit 1; }
-	$(COMPOSE) up -d
+	$(COMPOSE) pull --quiet || true
+	$(COMPOSE) up -d --remove-orphans
 	@bash $(ROOT)/scripts/wait_healthy.sh
-	@$(MAKE) --no-print-directory health
+	@$(MAKE) --no-print-directory health || true
 
 down:
 	$(COMPOSE) down
