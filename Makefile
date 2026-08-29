@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold query runs outputs test test-integration ci lint clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold query runs outputs test test-integration ci lint pre-commit clean
 
 help:
 	@printf '%s\n' \
@@ -41,6 +41,7 @@ help:
 	  '  make test      unit + hermetic zone-path tests' \
 	  '  make test-integration  live MiniStack Bronze→Silver→Gold' \
 	  '  make lint      ruff check + format check' \
+	  '  make pre-commit  run .pre-commit-config.yaml hooks on the whole tree' \
 	  '  make ci        lint + unit + up + infra + seed + pipeline + integration' \
 	  '  make down      stop MiniStack' \
 	  '  make destroy   terraform destroy (keeps MiniStack running)' \
@@ -52,7 +53,7 @@ install:
 up:
 	@command -v docker >/dev/null || { echo "ERROR: docker is required for make up" >&2; exit 1; }
 	$(COMPOSE) up -d
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@$(MAKE) --no-print-directory health
 
 down:
@@ -62,7 +63,7 @@ logs:
 	$(COMPOSE) logs --tail=100 ministack
 
 health:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@$(PYTHON) -m lakehouse health
 
 package:
@@ -70,13 +71,13 @@ package:
 
 infra-plan: package
 	@command -v terraform >/dev/null || { echo "ERROR: terraform is required for make infra" >&2; exit 1; }
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	cd $(TF_DIR) && terraform init -input=false
 	cd $(TF_DIR) && terraform plan -input=false -out=tfplan
 
 infra: package
 	@command -v terraform >/dev/null || { echo "ERROR: terraform is required for make infra" >&2; exit 1; }
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	cd $(TF_DIR) && terraform init -input=false
 	cd $(TF_DIR) && terraform apply -input=false -auto-approve
 	@echo "--- terraform outputs ---"
@@ -90,47 +91,50 @@ outputs:
 	@bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR)
 
 seed:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse seed
 
 pipeline:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse pipeline
 
 ingest:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse ingest
 
 silver:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse silver
 
 quality:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse quality
 
 gold:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse gold
 
 query:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse query
 
 runs:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse runs
 
 test:
 	$(PYTHON) -m pytest $(ROOT)/tests -m "not integration"
 
 test-integration:
-	@bash $(ROOT)/scripts/wait_healthy.sh
+	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; LAKEHOUSE_LIVE=1 $(PYTHON) -m pytest $(ROOT)/tests -m integration
 
 lint:
 	$(PYTHON) -m ruff check $(ROOT)/src $(ROOT)/tests $(ROOT)/scripts
 	$(PYTHON) -m ruff format --check $(ROOT)/src $(ROOT)/tests $(ROOT)/scripts
+
+pre-commit:
+	$(PYTHON) -m pre_commit run --all-files --show-diff-on-failure
 
 ci: lint test up infra seed pipeline query test-integration
 
