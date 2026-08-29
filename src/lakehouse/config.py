@@ -28,6 +28,8 @@ _DEFAULTS = {
     "GOLD_METRICS_TABLE": "lakehouse-local-gold-metrics",
     "BRONZE_EVENTS_QUEUE": "lakehouse-local-bronze-events",
     "BRONZE_EVENTS_QUEUE_URL": "",
+    "BRONZE_EVENTS_DLQ": "lakehouse-local-bronze-events-dlq",
+    "BRONZE_EVENTS_DLQ_URL": "",
 }
 
 _LINE_RE = re.compile(r"^(?:export\s+)?(?P<key>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?P<value>.*)$")
@@ -116,6 +118,8 @@ class Settings:
     gold_metrics_table: str
     bronze_events_queue: str
     bronze_events_queue_url: str
+    bronze_events_dlq: str = "lakehouse-local-bronze-events-dlq"
+    bronze_events_dlq_url: str = ""
 
     @property
     def buckets(self) -> tuple[str, str, str]:
@@ -177,6 +181,14 @@ def load_settings(
         ),
         bronze_events_queue_url=os.environ.get(
             "BRONZE_EVENTS_QUEUE_URL", _DEFAULTS["BRONZE_EVENTS_QUEUE_URL"]
+        )
+        or "",
+        bronze_events_dlq=_require(
+            "BRONZE_EVENTS_DLQ",
+            os.environ.get("BRONZE_EVENTS_DLQ", _DEFAULTS["BRONZE_EVENTS_DLQ"]),
+        ),
+        bronze_events_dlq_url=os.environ.get(
+            "BRONZE_EVENTS_DLQ_URL", _DEFAULTS["BRONZE_EVENTS_DLQ_URL"]
         )
         or "",
     )
