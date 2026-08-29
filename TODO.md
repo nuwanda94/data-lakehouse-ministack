@@ -22,10 +22,36 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] chore: Lambda packaging & deployment via Terraform
 - [x] chore: Wire S3 event notifications or EventBridge
 - [x] test: Integration tests for full Bronze → Silver → Gold
-- [ ] docs: Document zone contracts & data dictionary
+- [x] docs: Document zone contracts & data dictionary
 
-## Later Phases
-See the full plan in the original documentation / PDF.
+## Phase 2 — Orchestration & Reliability (P1)
+
+- [ ] feat: Step Functions state machine
+- [ ] feat: Dead-letter handling & reprocessing
+- [ ] feat: Idempotency keys & exactly-once semantics
+- [ ] feat: Late-arriving data handling
+- [ ] chore: Centralized configuration (SSM or config file)
+- [ ] test: Failure injection tests
+- [ ] docs: Runbook: how to reprocess a date / debug a failed run
+
+## Phase 3 — Catalog, Query & Analytics (P1/P2)
+
+- [ ] feat: Glue Data Catalog tables for Silver & Gold
+- [ ] feat: Athena workgroup + named queries
+- [ ] feat: dbt project on top of Athena/Glue
+- [ ] feat: Simple query UI or notebook
+- [ ] chore: Partition projection / partition management
+- [ ] docs: Analytical data model documentation
+
+## Phase 4 — Observability & Platform (remaining P0/P1)
+
+- [ ] ci: Full CI pipeline with MiniStack (P0)
+- [ ] ci: Pre-commit + required status checks (P0)
+- [ ] feat: Structured metrics (CloudWatch + custom)
+- [ ] feat: Schema evolution & contract testing
+- [ ] feat: Multi-environment support (local / real AWS)
+- [ ] chore: Cost & performance notes in README
+- [ ] docs: Architecture Decision Records for remaining big choices
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).

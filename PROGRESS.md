@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-29 19:05 IST
+- Completed: docs: Document zone contracts & data dictionary
+- Next candidate: ci: Full CI pipeline with MiniStack (P0)
+- Notes: Added `configs/contracts/` (bronze/silver/gold/quality/pipeline_run JSON), `docs/data-dictionary.md`, `lakehouse.contracts` loader, and `tests/test_contracts.py` so field lists and Hive keys stay aligned with `CommerceEvent` and zone helpers. Phase 1 P0 is complete. Highest remaining P0 is GitHub Actions against MiniStack (there is still no `.github/workflows` tree).
+
 ## 2026-08-29 18:06 IST
 - Completed: test: Integration tests for full Bronze → Silver → Gold
 - Next candidate: docs: Document zone contracts & data dictionary (P0)

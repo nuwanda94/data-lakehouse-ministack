@@ -9,6 +9,7 @@ PUBLIC_MODULES = [
     "lakehouse.config",
     "lakehouse.aws",
     "lakehouse.models",
+    "lakehouse.contracts",
     "lakehouse.cli",
     "lakehouse.seed",
     "lakehouse.seed.generate",
@@ -53,6 +54,7 @@ def test_package_version_and_exports() -> None:
 
 
 def test_seed_and_pipeline_reexports() -> None:
+    from lakehouse.contracts import load_contract, load_all_contracts
     from lakehouse.ops import expected_notification, package_lambda
     from lakehouse.pipeline import bronze_key, gold_key, new_run, persist_run, quarantine_key, run_quality_checks, silver_key
     from lakehouse.quality import evaluate_quality, run_quality_gate
@@ -70,3 +72,5 @@ def test_seed_and_pipeline_reexports() -> None:
     assert callable(run_quality_gate)
     assert callable(package_lambda)
     assert callable(expected_notification)
+    assert callable(load_contract)
+    assert callable(load_all_contracts)
