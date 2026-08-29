@@ -171,10 +171,10 @@ def load_settings(
             "GOLD_METRICS_TABLE",
             os.environ.get("GOLD_METRICS_TABLE", _DEFAULTS["GOLD_METRICS_TABLE"]),
         ),
-        bronze_events_queue=os.environ.get(
-            "BRONZE_EVENTS_QUEUE", _DEFAULTS["BRONZE_EVENTS_QUEUE"]
-        )
-        or "",
+        bronze_events_queue=_require(
+            "BRONZE_EVENTS_QUEUE",
+            os.environ.get("BRONZE_EVENTS_QUEUE", _DEFAULTS["BRONZE_EVENTS_QUEUE"]),
+        ),
         bronze_events_queue_url=os.environ.get(
             "BRONZE_EVENTS_QUEUE_URL", _DEFAULTS["BRONZE_EVENTS_QUEUE_URL"]
         )
