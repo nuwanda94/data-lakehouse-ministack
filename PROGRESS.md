@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-29 20:02 IST
+- Completed: ci: Full CI pipeline with MiniStack
+- Next candidate: ci: Pre-commit + required status checks (P0)
+- Notes: Added `.github/workflows/ci.yml` — lint (ruff + terraform fmt) and hermetic unit jobs, then a gated `ministack-pipeline` job that runs `make up` → `infra` → `seed` → `pipeline` → `query` → `test-integration` against MiniStack on ubuntu-latest. `make ci` is a local alias for the same sequence. Next P0 is wiring pre-commit in CI plus documenting required status checks.
+
 ## 2026-08-29 19:05 IST
 - Completed: docs: Document zone contracts & data dictionary
 - Next candidate: ci: Full CI pipeline with MiniStack (P0)

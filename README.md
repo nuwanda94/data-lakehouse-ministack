@@ -69,8 +69,9 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Quality gate | Done | `lakehouse.quality.gate` |
 | Bronze → Silver → Gold integration tests | Done | hermetic + live MiniStack marker |
 | Zone contracts + data dictionary | Done | [`configs/contracts/`](configs/contracts/) · [`docs/data-dictionary.md`](docs/data-dictionary.md) |
+| Full CI vs MiniStack | Done | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | Glue / Athena / dbt | Later | Phase 3 |
-| Full CI vs MiniStack | Later | Phase 4 P0 |
+| Pre-commit required checks | Later | Phase 4 P0 |
 
 Live checklist: [`TODO.md`](TODO.md). Run log: [`PROGRESS.md`](PROGRESS.md).
 ADR index: [`docs/adr/README.md`](docs/adr/README.md).
@@ -139,6 +140,8 @@ make clean       # down + delete local terraform state
 | `make query` | eval outputs, then `python -m lakehouse query` |
 | `make test` | `pytest tests -m "not integration"` |
 | `make test-integration` | live MiniStack Bronze → Silver → Gold |
+| `make lint` | `ruff check` + `ruff format --check` |
+| `make ci` | lint + unit + MiniStack loop (same sequence as GHA) |
 | `make logs` | MiniStack container logs |
 
 `make seed` / `pipeline` / `query` **eval** `scripts/get_outputs.sh` so bucket
@@ -161,6 +164,16 @@ python -m lakehouse pipeline
 python -m lakehouse query
 python -m lakehouse settings
 ```
+
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) on every push and PR to `main`:
+
+1. **lint** — ruff check/format + `terraform fmt -check`
+2. **unit** — `make test` (hermetic; no MiniStack)
+3. **ministack-pipeline** — `make up` → `infra` → `seed` → `pipeline` → `query` → `test-integration`
+
+Local equivalent of the full path: `make ci` (needs Docker + Terraform).
 
 ## Configuration
 
@@ -197,6 +210,7 @@ src/lakehouse/
 infra/terraform/     # S3 zones + DynamoDB tables against MiniStack
 configs/contracts/   # zone field lists + partition keys
 scripts/             # wait_healthy.sh, get_outputs.sh, tf_env.sh
+.github/workflows/   # MiniStack CI
 docs/adr/            # architecture decision records
 docs/data-dictionary.md
 tests/
@@ -218,7 +232,7 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | Event-driven ingest | S3 → SQS → ingest Lambda |
 | Orchestration | Python runner now; Step Functions in Phase 2 ([ADR-003](docs/adr/003-local-orchestration-vs-step-functions.md)) |
 | Analytics surface | Planned Glue Catalog + Athena + optional dbt |
-| Platform hygiene | pytest, pre-commit, conventional commits |
+| Platform hygiene | pytest, pre-commit, GitHub Actions vs MiniStack |
 
 ## Troubleshooting
 
@@ -229,6 +243,7 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | Seed writes to unexpected bucket | Stale env / missing outputs | `make outputs`; avoid exporting old bucket names in your shell |
 | `ModuleNotFoundError: lakehouse` | Package not installed | `make install` or `pip install -e ".[dev]"` |
 | Tests pass but pipeline fails | MiniStack / Terraform not applied | Unit tests are offline; the live loop needs `up` + `infra` |
+| CI ministack job fails at `make up` | Docker image pull or port bind | Check the "MiniStack logs on failure" step |
 
 ## License
 

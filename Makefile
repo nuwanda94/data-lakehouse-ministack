@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold query runs outputs test test-integration clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold query runs outputs test test-integration ci lint clean
 
 help:
 	@printf '%s\n' \
@@ -40,6 +40,8 @@ help:
 	  '  make runs      list pipeline run metadata from DynamoDB' \
 	  '  make test      unit + hermetic zone-path tests' \
 	  '  make test-integration  live MiniStack Bronze→Silver→Gold' \
+	  '  make lint      ruff check + format check' \
+	  '  make ci        lint + unit + up + infra + seed + pipeline + integration' \
 	  '  make down      stop MiniStack' \
 	  '  make destroy   terraform destroy (keeps MiniStack running)' \
 	  '  make clean     stop stack and remove local terraform state'
@@ -125,6 +127,12 @@ test:
 test-integration:
 	@$(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; LAKEHOUSE_LIVE=1 $(PYTHON) -m pytest $(ROOT)/tests -m integration
+
+lint:
+	$(PYTHON) -m ruff check $(ROOT)/src $(ROOT)/tests $(ROOT)/scripts
+	$(PYTHON) -m ruff format --check $(ROOT)/src $(ROOT)/tests $(ROOT)/scripts
+
+ci: lint test up infra seed pipeline query test-integration
 
 clean: down
 	rm -rf $(TF_DIR)/.terraform $(TF_DIR)/terraform.tfstate $(TF_DIR)/terraform.tfstate.backup $(TF_DIR)/tfplan $(ROOT)/build/lambda
