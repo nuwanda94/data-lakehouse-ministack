@@ -19,6 +19,12 @@ from lakehouse.config import Settings, load_settings
 from lakehouse.ingest.s3_events import extract_object_refs
 from lakehouse.models import CommerceEvent
 from lakehouse.pipeline.gold import gold_key
+from lakehouse.pipeline.idempotency import (
+    deterministic_run_id,
+    idempotency_key,
+    lookup_succeeded,
+    replay_result,
+)
 from lakehouse.pipeline.runs import new_run
 from lakehouse.transforms.events import aggregate_gold
 
@@ -32,7 +38,7 @@ def _persist_run(
     table: str,
     run: Any,
     *,
-    metrics: dict[str, int],
+    metrics: dict[str, int | str],
     objects: list[str],
 ) -> None:
     item: dict[str, Any] = {
@@ -47,6 +53,9 @@ def _persist_run(
         "gold_written": {"N": str(metrics.get("gold_written", 0))},
         "metrics_written": {"N": str(metrics.get("metrics_written", 0))},
     }
+    if metrics.get("idempotency_key"):
+        item["idempotency_key"] = {"S": str(metrics["idempotency_key"])}
+        item["metrics"] = {"S": json.dumps(metrics)}
     if run.finished_at is not None:
         item["finished_at"] = {"S": run.finished_at.isoformat()}
     if run.error:
@@ -186,7 +195,24 @@ def transform_gold(
             invalid += 1
             LOGGER.warning("skipping unreadable silver object %s/%s", bucket, key)
 
-    run = new_run(zone="gold", status="running")
+    fingerprint = [*source_keys, *[f"missing:{m}" for m in missing]]
+    run_id = deterministic_run_id("gold", *fingerprint) if fingerprint else None
+    key = idempotency_key("gold", *fingerprint) if fingerprint else None
+    if run_id:
+        existing = lookup_succeeded(ddb_client, resolved.pipeline_runs_table, run_id)
+        if existing is not None:
+            return replay_result(
+                existing,
+                skipped=skipped,
+                missing=missing,
+                silver_read=int(existing.metrics.get("silver_read", 0) or 0),
+                skipped_invalid=int(existing.metrics.get("skipped_invalid", 0) or 0),
+                gold_written=[],
+                aggregates=[],
+                idempotency_key=key,
+            )
+
+    run = new_run(zone="gold", status="running", run_id=run_id)
     rows = aggregate_gold(events)
     gold_keys = _write_gold(
         s3_client,
@@ -196,12 +222,14 @@ def transform_gold(
         rows=rows,
     )
 
-    metrics = {
+    metrics: dict[str, int | str] = {
         "silver_read": len(events),
         "skipped_invalid": invalid,
         "gold_written": len(gold_keys),
         "metrics_written": len(gold_keys),
     }
+    if key:
+        metrics["idempotency_key"] = key
 
     if missing and not source_keys:
         run.status = "failed"
@@ -223,11 +251,13 @@ def transform_gold(
         "accepted": source_keys,
         "skipped": skipped,
         "missing": missing,
-        "silver_read": metrics["silver_read"],
+        "silver_read": int(metrics["silver_read"]),
         "skipped_invalid": invalid,
         "gold_written": gold_keys,
         "aggregates": rows,
         "metrics": metrics,
+        "idempotent_replay": False,
+        "idempotency_key": key,
     }
 
 
