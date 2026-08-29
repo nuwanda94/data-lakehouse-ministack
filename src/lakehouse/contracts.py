@@ -8,7 +8,7 @@ exposes the documents for tests and future schema-evolution CI.
 from __future__ import annotations
 
 import json
-from functools import lru_cache
+from functools import cache
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +29,7 @@ def contracts_dir() -> Path:
     raise FileNotFoundError("configs/contracts/ not found from package or cwd")
 
 
-@lru_cache(maxsize=None)
+@cache
 def load_contract(name: str) -> dict[str, Any]:
     path = contracts_dir() / f"{name}.json"
     if not path.is_file():
