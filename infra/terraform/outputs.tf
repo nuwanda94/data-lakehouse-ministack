@@ -38,6 +38,18 @@ output "bronze_events_queue_arn" {
   value = aws_sqs_queue.bronze_events.arn
 }
 
+output "bronze_events_dlq" {
+  value = aws_sqs_queue.bronze_events_dlq.name
+}
+
+output "bronze_events_dlq_url" {
+  value = aws_sqs_queue.bronze_events_dlq.url
+}
+
+output "bronze_events_dlq_arn" {
+  value = aws_sqs_queue.bronze_events_dlq.arn
+}
+
 output "bronze_notify_prefix" {
   value = "events/"
 }

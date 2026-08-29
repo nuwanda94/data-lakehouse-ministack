@@ -24,6 +24,8 @@ OUTPUT_ENV_MAP: dict[str, str] = {
     "gold_metrics_table": "GOLD_METRICS_TABLE",
     "bronze_events_queue": "BRONZE_EVENTS_QUEUE",
     "bronze_events_queue_url": "BRONZE_EVENTS_QUEUE_URL",
+    "bronze_events_dlq": "BRONZE_EVENTS_DLQ",
+    "bronze_events_dlq_url": "BRONZE_EVENTS_DLQ_URL",
 }
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
