@@ -61,3 +61,11 @@ output "lambda_quality_name" {
 output "lambda_gold_name" {
   value = aws_lambda_function.zone["gold"].function_name
 }
+
+output "sfn_state_machine_name" {
+  value = aws_sfn_state_machine.medallion.name
+}
+
+output "sfn_state_machine_arn" {
+  value = aws_sfn_state_machine.medallion.arn
+}

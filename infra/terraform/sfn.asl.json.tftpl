@@ -1,0 +1,68 @@
+{
+  "Comment": "Medallion lakehouse: Bronze ingest → Silver → quality gate → Gold",
+  "StartAt": "IngestBronze",
+  "States": {
+    "IngestBronze": {
+      "Type": "Task",
+      "Comment": "HEAD/GET Bronze objects and record the run",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${ingest_arn}",
+        "Payload.$": "$"
+      },
+      "ResultSelector": {
+        "status.$": "$.Payload.status",
+        "run_id.$": "$.Payload.run_id",
+        "passed.$": "$.Payload.passed",
+        "error.$": "$.Payload.error",
+        "metrics.$": "$.Payload.metrics"
+      },
+      "ResultPath": "$.ingest",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed", "Lambda.ServiceException", "Lambda.TooManyRequestsException"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "Failed"}],
+      "Next": "TransformSilver"
+    },
+    "TransformSilver": {
+      "Type": "Task",
+      "Comment": "Cleanse Bronze JSON into Silver + quarantine",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {"FunctionName": "${silver_arn}", "Payload.$": "$"},
+      "ResultSelector": {"status.$": "$.Payload.status", "run_id.$": "$.Payload.run_id", "passed.$": "$.Payload.passed", "error.$": "$.Payload.error", "metrics.$": "$.Payload.metrics"},
+      "ResultPath": "$.silver",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed", "Lambda.ServiceException", "Lambda.TooManyRequestsException"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "Failed"}],
+      "Next": "QualityGate"
+    },
+    "QualityGate": {
+      "Type": "Task",
+      "Comment": "Named quality checks; fail or quarantine",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {"FunctionName": "${quality_arn}", "Payload.$": "$"},
+      "ResultSelector": {"status.$": "$.Payload.status", "run_id.$": "$.Payload.run_id", "passed.$": "$.Payload.passed", "error.$": "$.Payload.error", "metrics.$": "$.Payload.metrics"},
+      "ResultPath": "$.quality",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed", "Lambda.ServiceException", "Lambda.TooManyRequestsException"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "Failed"}],
+      "Next": "QualityChoice"
+    },
+    "QualityChoice": {
+      "Type": "Choice",
+      "Comment": "Stop the run when the gate fails; otherwise aggregate Gold",
+      "Choices": [{"Or": [{"Variable": "$.quality.passed", "BooleanEquals": false}, {"Variable": "$.quality.status", "StringEquals": "quality_failed"}], "Next": "QualityFailed"}],
+      "Default": "AggregateGold"
+    },
+    "AggregateGold": {
+      "Type": "Task",
+      "Comment": "Daily Gold metrics + DynamoDB rows",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {"FunctionName": "${gold_arn}", "Payload.$": "$"},
+      "ResultSelector": {"status.$": "$.Payload.status", "run_id.$": "$.Payload.run_id", "passed.$": "$.Payload.passed", "error.$": "$.Payload.error", "metrics.$": "$.Payload.metrics"},
+      "ResultPath": "$.gold",
+      "Retry": [{"ErrorEquals": ["States.TaskFailed", "Lambda.ServiceException", "Lambda.TooManyRequestsException"], "IntervalSeconds": 2, "MaxAttempts": 3, "BackoffRate": 2.0}],
+      "Catch": [{"ErrorEquals": ["States.ALL"], "ResultPath": "$.error", "Next": "Failed"}],
+      "Next": "Succeeded"
+    },
+    "Succeeded": {"Type": "Succeed", "Comment": "Full Bronze → Gold pass completed"},
+    "QualityFailed": {"Type": "Fail", "Error": "QualityGateFailed", "Cause": "Silver quality gate rejected the run"},
+    "Failed": {"Type": "Fail", "Error": "PipelineFailed", "Cause": "A zone Lambda raised; see $.error"}
+  }
+}
