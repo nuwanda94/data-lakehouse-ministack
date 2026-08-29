@@ -56,7 +56,20 @@ class FakeDDB:
         self.items: list[dict[str, Any]] = []
 
     def put_item(self, **kwargs: Any) -> dict[str, Any]:
-        self.items.append(kwargs["Item"])
+        item = kwargs["Item"]
+        run_id = item.get("run_id", {}).get("S")
+        if run_id:
+            self.items = [i for i in self.items if i.get("run_id", {}).get("S") != run_id]
+        self.items.append(item)
+        return {}
+
+    def get_item(self, **kwargs: Any) -> dict[str, Any]:
+        key = kwargs.get("Key") or {}
+        if "run_id" in key:
+            run_id = key["run_id"]["S"]
+            for item in self.items:
+                if item.get("run_id", {}).get("S") == run_id:
+                    return {"Item": item}
         return {}
 
 
@@ -161,6 +174,10 @@ def test_event_driven_writes_gold_and_metrics() -> None:
     assert len(metric_items) == 2
     assert run_items[0]["zone"]["S"] == "gold"
     assert run_items[0]["gold_written"]["N"] == "2"
+
+    replay = transform_gold(event, settings=_settings(), s3=s3, ddb=ddb)
+    assert replay["idempotent_replay"] is True
+    assert replay["run_id"] == result["run_id"]
 
 
 def test_batch_mode_lists_silver_prefix() -> None:
