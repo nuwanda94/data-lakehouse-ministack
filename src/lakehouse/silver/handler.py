@@ -17,6 +17,12 @@ from urllib.parse import unquote_plus
 from lakehouse.aws import client
 from lakehouse.config import Settings, load_settings
 from lakehouse.ingest.s3_events import extract_object_refs
+from lakehouse.pipeline.idempotency import (
+    deterministic_run_id,
+    idempotency_key,
+    lookup_succeeded,
+    replay_result,
+)
 from lakehouse.pipeline.runs import new_run
 from lakehouse.pipeline.silver import quarantine_key, silver_key
 from lakehouse.transforms.events import SilverBatch, cleanse_to_silver
@@ -31,7 +37,7 @@ def _persist_run(
     table: str,
     run: Any,
     *,
-    metrics: dict[str, int],
+    metrics: dict[str, int | str],
     objects: list[str],
 ) -> None:
     item: dict[str, Any] = {
@@ -47,6 +53,9 @@ def _persist_run(
         "silver_written": {"N": str(metrics.get("silver_written", 0))},
         "quarantine_written": {"N": str(metrics.get("quarantine_written", 0))},
     }
+    if metrics.get("idempotency_key"):
+        item["idempotency_key"] = {"S": str(metrics["idempotency_key"])}
+        item["metrics"] = {"S": json.dumps(metrics)}
     if run.finished_at is not None:
         item["finished_at"] = {"S": run.finished_at.isoformat()}
     if run.error:
@@ -177,17 +186,37 @@ def transform_silver(
         raw_records.append(payload)
         source_keys.append(key)
 
-    run = new_run(zone="silver", status="running")
+    fingerprint = [*source_keys, *[f"missing:{m}" for m in missing]]
+    run_id = deterministic_run_id("silver", *fingerprint) if fingerprint else None
+    key = idempotency_key("silver", *fingerprint) if fingerprint else None
+    if run_id:
+        existing = lookup_succeeded(ddb_client, resolved.pipeline_runs_table, run_id)
+        if existing is not None:
+            return replay_result(
+                existing,
+                skipped=skipped,
+                missing=missing,
+                valid=int(existing.metrics.get("valid", 0) or 0),
+                quarantined=int(existing.metrics.get("quarantined", 0) or 0),
+                late=int(existing.metrics.get("late", 0) or 0),
+                silver_written=[],
+                quarantine_written=[],
+                idempotency_key=key,
+            )
+
+    run = new_run(zone="silver", status="running", run_id=run_id)
     batch = cleanse_to_silver(raw_records)
     silver_keys, quarantine_keys = _write_silver(s3_client, resolved.silver_bucket, batch)
 
-    metrics = {
+    metrics: dict[str, int | str] = {
         "valid": len(batch.valid),
         "quarantined": len(batch.quarantined),
         "late": len(batch.late),
         "silver_written": len(silver_keys),
         "quarantine_written": len(quarantine_keys),
     }
+    if key:
+        metrics["idempotency_key"] = key
 
     if missing and not source_keys:
         run.status = "failed"
@@ -209,12 +238,14 @@ def transform_silver(
         "accepted": source_keys,
         "skipped": skipped,
         "missing": missing,
-        "valid": metrics["valid"],
-        "quarantined": metrics["quarantined"],
-        "late": metrics["late"],
+        "valid": int(metrics["valid"]),
+        "quarantined": int(metrics["quarantined"]),
+        "late": int(metrics["late"]),
         "silver_written": silver_keys,
         "quarantine_written": quarantine_keys,
         "metrics": metrics,
+        "idempotent_replay": False,
+        "idempotency_key": key,
     }
 
 
