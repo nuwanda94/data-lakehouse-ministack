@@ -77,7 +77,9 @@ def test_load_dotenv_does_not_override_existing_env(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     env_file = tmp_path / ".env"
-    env_file.write_text("BRONZE_BUCKET=from-dotenv\nSILVER_BUCKET=silver-dotenv\n", encoding="utf-8")
+    env_file.write_text(
+        "BRONZE_BUCKET=from-dotenv\nSILVER_BUCKET=silver-dotenv\n", encoding="utf-8"
+    )
     monkeypatch.setenv("BRONZE_BUCKET", "already-set")
     monkeypatch.delenv("SILVER_BUCKET", raising=False)
 
@@ -85,6 +87,8 @@ def test_load_dotenv_does_not_override_existing_env(
     assert loaded == env_file
     assert os.environ["BRONZE_BUCKET"] == "already-set"
     assert os.environ["SILVER_BUCKET"] == "silver-dotenv"
+    # Keep later tests hermetic — remove keys we injected into the real environ.
+    monkeypatch.delenv("SILVER_BUCKET", raising=False)
 
 
 def test_load_settings_reads_explicit_env_file(
@@ -101,6 +105,8 @@ def test_load_settings_reads_explicit_env_file(
     assert settings.bronze_bucket == "file-bronze"
     assert settings.aws_region == "ap-south-1"
     assert settings.gold_bucket == "lakehouse-local-gold"
+    # load_dotenv writes into real os.environ; clear so other modules stay hermetic.
+    _clear_settings_env(monkeypatch)
 
 
 def test_find_env_file_walks_parents(tmp_path: Path) -> None:
