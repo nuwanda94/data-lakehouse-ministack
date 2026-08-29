@@ -1,0 +1,24 @@
+{
+  "name": "silver_quality_gate",
+  "report_key": "quality/dt={YYYY-MM-DD}/run_id={run_id}.json",
+  "bucket": "SILVER_BUCKET",
+  "on_fail": ["fail", "quarantine"],
+  "default_on_fail": "fail",
+  "default_max_fail_ratio": 0.0,
+  "checks": [
+    {"name": "event_id_present", "description": "event_id is a non-empty string."},
+    {"name": "known_event_type", "description": "event_type is one of page_view, add_to_cart, purchase, refund."},
+    {"name": "required_dimensions", "description": "user_id and sku are non-empty."},
+    {"name": "quantity_and_amount_sane", "description": "quantity is an integer > 0 and amount_usd is a number >= 0."},
+    {"name": "schema_valid", "description": "Payload validates as lakehouse.models.CommerceEvent."}
+  ],
+  "report_fields": [
+    "run_id",
+    "passed",
+    "action",
+    "rows_scanned",
+    "rows_failed",
+    "fail_ratio",
+    "checks"
+  ]
+}

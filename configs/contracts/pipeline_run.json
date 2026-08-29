@@ -1,0 +1,19 @@
+{
+  "name": "pipeline_run",
+  "store": "DynamoDB PIPELINE_RUNS_TABLE",
+  "pk": "run_id",
+  "fields": [
+    {"name": "run_id", "type": "string", "required": true, "description": "UUID or LAKEHOUSE_RUN_ID / event.run_id so zone steps can correlate."},
+    {"name": "status", "type": "string", "enum": ["pending", "running", "succeeded", "failed", "quality_failed"]},
+    {"name": "started_at", "type": "datetime"},
+    {"name": "finished_at", "type": "datetime", "required": false},
+    {"name": "zone", "type": "string", "enum": ["bronze", "silver", "gold"], "required": false},
+    {"name": "step", "type": "string", "enum": ["ingest", "silver", "quality", "gold", "pipeline"], "required": false},
+    {"name": "parent_run_id", "type": "string", "required": false},
+    {"name": "error", "type": "string", "required": false},
+    {"name": "objects", "type": "json-string", "description": "JSON list of S3 keys touched by the step."},
+    {"name": "object_count", "type": "number"},
+    {"name": "quality", "type": "json-string", "description": "JSON list of QualityResult objects."},
+    {"name": "metrics", "type": "json-string", "description": "Flattened numeric metrics are also stored as top-level DynamoDB attributes."}
+  ]
+}

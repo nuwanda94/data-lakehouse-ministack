@@ -1,0 +1,38 @@
+{
+  "zone": "silver",
+  "name": "commerce_event_conformed",
+  "format": "application/json",
+  "partitioning": {
+    "prefix": "events/",
+    "key": "events/event_type={event_type}/dt={YYYY-MM-DD}/{event_id}.json",
+    "hive": ["event_type", "dt"]
+  },
+  "quarantine": {
+    "prefix": "quarantine/",
+    "key": "quarantine/reason={reason}/{event_id}.json",
+    "payload": {"reason": "string", "payload": "object", "checks": "optional list of quality check names"}
+  },
+  "producer": "lakehouse.silver.handler",
+  "consumer": "lakehouse.quality + lakehouse.gold",
+  "description": "Cleansed CommerceEvent plus _late flag. Invalid bronze rows land under quarantine/ instead of events/.",
+  "fields": [
+    {"name": "event_id", "type": "string", "required": true, "description": "Same as bronze; used as object basename."},
+    {"name": "event_ts", "type": "datetime", "required": true, "description": "Timezone-aware event time."},
+    {"name": "event_type", "type": "string", "required": true, "enum": ["page_view", "add_to_cart", "purchase", "refund"]},
+    {"name": "user_id", "type": "string", "required": true},
+    {"name": "sku", "type": "string", "required": true},
+    {"name": "quantity", "type": "integer", "required": true, "constraints": "> 0"},
+    {"name": "amount_usd", "type": "number", "required": true, "constraints": ">= 0"},
+    {"name": "country", "type": "string", "required": true},
+    {"name": "_late", "type": "boolean", "required": true, "description": "True when event_ts is older than watermark - lookback (default 2 days). Late rows still live under events/ so Gold can include them; Phase 2 reprocessing will reopen the Gold partition."}
+  ],
+  "quarantine_reasons": [
+    "empty_record",
+    "missing_event_id",
+    "unknown_event_type",
+    "non_numeric_measures",
+    "non_positive_quantity",
+    "negative_amount",
+    "schema_invalid"
+  ]
+}

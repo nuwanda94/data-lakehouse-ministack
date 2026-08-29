@@ -1,0 +1,23 @@
+{
+  "zone": "bronze",
+  "name": "commerce_event_raw",
+  "format": "application/json",
+  "partitioning": {
+    "prefix": "events/",
+    "key": "events/dt={YYYY-MM-DD}/{event_id}.json",
+    "hive": ["dt"]
+  },
+  "producer": "lakehouse.ops.seed / generate_events",
+  "consumer": "lakehouse.ingest + lakehouse.silver",
+  "description": "Immutable landing zone. One object per synthetic commerce event. Schema is best-effort; Silver is the first validation boundary.",
+  "fields": [
+    {"name": "event_id", "type": "string", "required": true, "description": "Stable event identifier. Seed format: evt-{seed:04d}-{i:06d}."},
+    {"name": "event_ts", "type": "datetime", "required": true, "description": "Event occurrence time (ISO-8601). Partition date is taken from this timestamp."},
+    {"name": "event_type", "type": "string", "required": true, "enum": ["page_view", "add_to_cart", "purchase", "refund"], "description": "Business event class. Unknown values are quarantined in Silver."},
+    {"name": "user_id", "type": "string", "required": true, "description": "Synthetic user identifier."},
+    {"name": "sku", "type": "string", "required": true, "description": "Product SKU (seed values: SKU-100..SKU-400)."},
+    {"name": "quantity", "type": "integer", "required": true, "constraints": "must be > 0 after Silver parse", "description": "Units. Bronze may land 0; Silver rejects non-positive."},
+    {"name": "amount_usd", "type": "number", "required": true, "constraints": "must be >= 0", "description": "Monetary amount in USD."},
+    {"name": "country", "type": "string", "required": false, "default": "US", "description": "ISO-like country code."}
+  ]
+}
