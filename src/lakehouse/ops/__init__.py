@@ -3,6 +3,7 @@
 from lakehouse.ops.health import check_health
 from lakehouse.ops.lambda_package import package as package_lambda
 from lakehouse.ops.notify import expected_notification, notification_matches
+from lakehouse.ops.dlq import list_dlq, redrive_dlq
 from lakehouse.ops.outputs import collect_outputs
 from lakehouse.ops.pipeline import run_pipeline
 from lakehouse.ops.query import query_gold
@@ -16,6 +17,8 @@ __all__ = [
     "query_gold",
     "query_runs",
     "collect_outputs",
+    "list_dlq",
+    "redrive_dlq",
     "package_lambda",
     "expected_notification",
     "notification_matches",

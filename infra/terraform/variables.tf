@@ -44,6 +44,18 @@ variable "bronze_events_queue" {
   default = "lakehouse-local-bronze-events"
 }
 
+variable "bronze_events_dlq" {
+  type        = string
+  description = "Dead-letter queue for Bronze S3/SQS events that exhaust retries."
+  default     = "lakehouse-local-bronze-events-dlq"
+}
+
+variable "bronze_events_max_receive_count" {
+  type        = number
+  description = "Receives before a Bronze event is moved to the DLQ."
+  default     = 3
+}
+
 variable "lambda_runtime" {
   type        = string
   description = "Lambda runtime shared by zone functions."
