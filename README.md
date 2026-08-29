@@ -70,12 +70,13 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Bronze → Silver → Gold integration tests | Done | hermetic + live MiniStack marker |
 | Zone contracts + data dictionary | Done | [`configs/contracts/`](configs/contracts/) · [`docs/data-dictionary.md`](docs/data-dictionary.md) |
 | Full CI vs MiniStack | Done | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| Pre-commit + required checks | Done | [`.pre-commit-config.yaml`](.pre-commit-config.yaml) · [`docs/ci.md`](docs/ci.md) |
 | Glue / Athena / dbt | Later | Phase 3 |
-| Pre-commit required checks | Later | Phase 4 P0 |
 
 Live checklist: [`TODO.md`](TODO.md). Run log: [`PROGRESS.md`](PROGRESS.md).
 ADR index: [`docs/adr/README.md`](docs/adr/README.md).
 Zone contracts: [`configs/contracts/`](configs/contracts/).
+CI / branch protection: [`docs/ci.md`](docs/ci.md).
 
 ## Prerequisites
 
@@ -97,6 +98,7 @@ cd data-lakehouse-ministack
 
 python -m pip install -e ".[dev]"   # or: make install
 cp .env.example .env                # optional; defaults already match Terraform
+pre-commit install                  # optional; same hooks CI runs
 
 make up          # MiniStack on :4566, wait until healthy
 make infra       # S3 buckets + DynamoDB tables
@@ -106,6 +108,7 @@ make pipeline    # bronze → silver → gold (local runner)
 make query       # gold object + metrics summary (JSON)
 make test        # hermetic unit + zone-path tests
 make test-integration  # optional live MiniStack path
+make pre-commit  # ruff + terraform fmt + file hygiene
 ```
 
 Expected shape of a clean run:
@@ -141,6 +144,7 @@ make clean       # down + delete local terraform state
 | `make test` | `pytest tests -m "not integration"` |
 | `make test-integration` | live MiniStack Bronze → Silver → Gold |
 | `make lint` | `ruff check` + `ruff format --check` |
+| `make pre-commit` | `pre-commit run --all-files` |
 | `make ci` | lint + unit + MiniStack loop (same sequence as GHA) |
 | `make logs` | MiniStack container logs |
 
@@ -170,10 +174,16 @@ python -m lakehouse settings
 GitHub Actions (`.github/workflows/ci.yml`) on every push and PR to `main`:
 
 1. **lint** — ruff check/format + `terraform fmt -check`
-2. **unit** — `make test` (hermetic; no MiniStack)
-3. **ministack-pipeline** — `make up` → `infra` → `seed` → `pipeline` → `query` → `test-integration`
+2. **pre-commit** — hooks from `.pre-commit-config.yaml`
+3. **unit** — `make test` (hermetic; no MiniStack)
+4. **ministack-pipeline** — `make up` → `infra` → `seed` → `pipeline` → `query` → `test-integration`
+
+Those four job names are the required status checks for `main`. How to
+enable branch protection (one-time GitHub UI step) is in
+[`docs/ci.md`](docs/ci.md).
 
 Local equivalent of the full path: `make ci` (needs Docker + Terraform).
+Local equivalent of the hook gate: `make pre-commit` after `pre-commit install`.
 
 ## Configuration
 
@@ -211,7 +221,9 @@ infra/terraform/     # S3 zones + DynamoDB tables against MiniStack
 configs/contracts/   # zone field lists + partition keys
 scripts/             # wait_healthy.sh, get_outputs.sh, tf_env.sh
 .github/workflows/   # MiniStack CI
+.pre-commit-config.yaml
 docs/adr/            # architecture decision records
+docs/ci.md           # required status checks
 docs/data-dictionary.md
 tests/
 ```
@@ -244,6 +256,7 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | `ModuleNotFoundError: lakehouse` | Package not installed | `make install` or `pip install -e ".[dev]"` |
 | Tests pass but pipeline fails | MiniStack / Terraform not applied | Unit tests are offline; the live loop needs `up` + `infra` |
 | CI ministack job fails at `make up` | Docker image pull or port bind | Check the "MiniStack logs on failure" step |
+| `make pre-commit` missing module | Dev extras not installed | `make install` (includes `pre-commit`) |
 
 ## License
 
