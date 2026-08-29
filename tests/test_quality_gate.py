@@ -117,9 +117,7 @@ class FakeS3:
         prefix = kwargs.get("Prefix", "")
         bucket = kwargs["Bucket"]
         contents = [
-            {"Key": key}
-            for (b, key) in self.objects
-            if b == bucket and key.startswith(prefix)
+            {"Key": key} for (b, key) in self.objects if b == bucket and key.startswith(prefix)
         ]
         return {"Contents": contents, "IsTruncated": False}
 
@@ -175,9 +173,7 @@ def test_handler_quarantines_on_fail_mode() -> None:
         Key="events/event_type=purchase/dt=2026-01-02/bad.json",
         Body=json.dumps(_event(quantity=0)),
     )
-    result = run_quality_gate(
-        None, settings=_settings(), s3=s3, ddb=ddb, on_fail="quarantine"
-    )
+    result = run_quality_gate(None, settings=_settings(), s3=s3, ddb=ddb, on_fail="quarantine")
     assert result["status"] == "succeeded"
     assert result["action"] == "quarantine"
     assert result["quarantine_written"]
