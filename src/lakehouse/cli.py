@@ -9,11 +9,12 @@ import sys
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="lakehouse")
-    sub = parser.add_subparsers(dest="command", required=True)
+    parser.add_argument("--version", action="store_true", help="Print package version")
+    sub = parser.add_subparsers(dest="command", required=False)
 
     sub.add_parser(
         "health",
-        help="Probe MiniStack S3 + DynamoDB and print a JSON report",
+        help="Probe Mini MiniStack S3 + DynamoDB and print a JSON report",
     )
 
     p_seed = sub.add_parser("seed", help="Write synthetic commerce events to Bronze")
@@ -33,10 +34,19 @@ def main(argv: list[str] | None = None) -> int:
     p_outputs = sub.add_parser("outputs", help="Emit Terraform outputs as env exports")
     p_outputs.add_argument("--tf-dir", default="infra/terraform")
     p_outputs.add_argument("--export", action="store_true")
-    p_outputs.add_argument("--as-json", action="store_true")
+    p_outputs.add_argument("--json", "--as-json", dest="as_json", action="store_true")
     p_outputs.add_argument("--write-env", default=None)
 
     args = parser.parse_args(argv)
+
+    if args.version:
+        from lakehouse import __version__
+
+        print(__version__)
+        return 0
+
+    if args.command is None:
+        parser.error("the following arguments are required: command")
 
     if args.command == "settings":
         from lakehouse.config import load_settings
@@ -62,7 +72,7 @@ def main(argv: list[str] | None = None) -> int:
         values = collect_outputs(args.tf_dir)
         if args.write_env:
             write_env_file(args.write_env, values)
-        if args.as_json:
+        if getattr(args, "as_json", False):
             print(json.dumps(values, indent=2))
         else:
             sys.stdout.write(format_exports(values, export=args.export))
