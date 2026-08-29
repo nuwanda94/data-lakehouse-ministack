@@ -15,6 +15,12 @@ from urllib.parse import unquote_plus
 from lakehouse.aws import client
 from lakehouse.config import Settings, load_settings
 from lakehouse.ingest.s3_events import BronzeObjectRef, extract_object_refs
+from lakehouse.pipeline.idempotency import (
+    deterministic_run_id,
+    idempotency_key,
+    lookup_succeeded,
+    replay_result,
+)
 from lakehouse.pipeline.runs import complete_run, new_run, persist_run
 
 LOGGER = logging.getLogger(__name__)
@@ -60,22 +66,49 @@ def ingest_bronze_event(
             continue
         accepted.append(BronzeObjectRef(bucket=ref.bucket, key=key, source=ref.source))
 
-    run = new_run(zone="bronze", status="running", step="ingest", event=event)
     object_keys = [ref.key for ref in accepted]
+    fingerprint = [*object_keys, *[f"missing:{m}" for m in missing]]
+    run_id = deterministic_run_id("bronze", *fingerprint) if fingerprint else None
+    key = idempotency_key("bronze", *fingerprint) if fingerprint else None
+
+    if run_id:
+        existing = lookup_succeeded(ddb_client, resolved.pipeline_runs_table, run_id)
+        if existing is not None:
+            return replay_result(
+                existing,
+                skipped=skipped,
+                missing=missing,
+                records=len(refs),
+                idempotency_key=key,
+            )
+
+    run = new_run(
+        zone="bronze",
+        status="running",
+        step="ingest",
+        event=event,
+        run_id=run_id,
+    )
+    metrics: dict[str, int | float | str] = {
+        "object_count": len(object_keys),
+        "missing": len(missing),
+    }
+    if key:
+        metrics["idempotency_key"] = key
     if missing and not accepted:
         complete_run(
             run,
             status="failed",
             error=f"missing bronze objects: {', '.join(missing)}",
             objects=object_keys,
-            metrics={"object_count": len(object_keys), "missing": len(missing)},
+            metrics=metrics,
         )
     else:
         complete_run(
             run,
             status="succeeded",
             objects=object_keys,
-            metrics={"object_count": len(object_keys), "missing": len(missing)},
+            metrics=metrics,
         )
     persist_run(ddb_client, resolved.pipeline_runs_table, run)
 
@@ -86,6 +119,8 @@ def ingest_bronze_event(
         "skipped": skipped,
         "missing": missing,
         "records": len(refs),
+        "idempotent_replay": False,
+        "idempotency_key": key,
     }
 
 
