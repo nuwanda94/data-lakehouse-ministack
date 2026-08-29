@@ -28,7 +28,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 
 - [x] feat: Step Functions state machine
 - [x] feat: Dead-letter handling & reprocessing
-- [ ] feat: Idempotency keys & exactly-once semantics
+- [x] feat: Idempotency keys & exactly-once semantics
 - [ ] feat: Late-arriving data handling
 - [ ] chore: Centralized configuration (SSM or config file)
 - [ ] test: Failure injection tests
