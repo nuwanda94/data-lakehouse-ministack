@@ -7,6 +7,7 @@ from typing import Any
 from lakehouse.config import Settings
 from lakehouse.ingest.bronze_handler import ingest_bronze_event
 from lakehouse.ingest.s3_events import extract_object_refs
+from lakehouse.pipeline.idempotency import deterministic_run_id
 
 
 def _settings() -> Settings:
@@ -52,7 +53,17 @@ class FakeDDB:
         self.items: list[dict[str, Any]] = []
 
     def put_item(self, **kwargs: Any) -> dict[str, Any]:
-        self.items.append(kwargs["Item"])
+        item = kwargs["Item"]
+        run_id = item.get("run_id", {}).get("S")
+        self.items = [i for i in self.items if i.get("run_id", {}).get("S") != run_id]
+        self.items.append(item)
+        return {}
+
+    def get_item(self, **kwargs: Any) -> dict[str, Any]:
+        run_id = kwargs["Key"]["run_id"]["S"]
+        for item in self.items:
+            if item.get("run_id", {}).get("S") == run_id:
+                return {"Item": item}
         return {}
 
 
@@ -140,8 +151,33 @@ def test_handler_writes_run_metadata_for_existing_object() -> None:
     assert result["status"] == "succeeded"
     assert result["accepted"] == ["events/dt=2026-01-02/evt-1.json"]
     assert result["skipped"] == ["tmp/ignore.json"]
+    assert result["idempotent_replay"] is False
+    expected_id = deterministic_run_id("bronze", "events/dt=2026-01-02/evt-1.json")
+    assert result["run_id"] == expected_id
     assert ddb.items[0]["zone"]["S"] == "bronze"
     assert ddb.items[0]["object_count"]["N"] == "1"
+
+
+def test_handler_replays_succeeded_run_on_retry() -> None:
+    s3 = FakeS3()
+    ddb = FakeDDB()
+    s3.put_object(Bucket="b", Key="events/dt=2026-01-02/evt-1.json", Body=b"{}")
+    event = {
+        "Records": [
+            {
+                "eventSource": "aws:s3",
+                "s3": {
+                    "bucket": {"name": "b"},
+                    "object": {"key": "events/dt=2026-01-02/evt-1.json"},
+                },
+            }
+        ]
+    }
+    first = ingest_bronze_event(event, settings=_settings(), s3=s3, ddb=ddb)
+    second = ingest_bronze_event(event, settings=_settings(), s3=s3, ddb=ddb)
+    assert first["run_id"] == second["run_id"]
+    assert second["idempotent_replay"] is True
+    assert len(ddb.items) == 1
 
 
 def test_handler_fails_when_all_objects_missing() -> None:
