@@ -28,66 +28,87 @@ _DEFAULTS = {
     "GOLD_METRICS_TABLE": "lakehouse-local-gold-metrics",
     "BRONZE_EVENTS_QUEUE": "lakehouse-local-bronze-events",
     "BRONZE_EVENTS_QUEUE_URL": "",
-    "LOG_LEVEL": "INFO",
-    "PROJECT": "lakehouse",
-    "ENV": "local",
 }
 
 _LINE_RE = re.compile(r"^(?:export\s+)?(?P<key>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?P<value>.*)$")
 
 
-def _strip_quotes(value: str) -> str:
-    if len(value) >= 2 and value[0] == value[-1] and value[0] in "'\"":
-        return value[1:-1]
-    return value
+def parse_dotenv(text: str) -> dict[str, str]:
+    """Parse a subset of dotenv syntax used by this project."""
 
-
-def load_env_file(
-    path: str | Path | None = None,
-    *,
-    override: bool = False,
-) -> dict[str, str]:
-    """Parse a dotenv file and merge into ``os.environ``.
-
-    Returns the key/value pairs that were applied (or skipped when already set).
-    """
-    if path is None:
-        candidates = [
-            Path.cwd() / ".env",
-            Path(__file__).resolve().parents[2] / ".env",
-        ]
-        for candidate in candidates:
-            if candidate.is_file():
-                path = candidate
-                break
-        else:
-            return {}
-
-    path = Path(path)
-    if not path.is_file():
-        return {}
-
-    applied: dict[str, str] = {}
-    for raw in path.read_text(encoding="utf-8").splitlines():
+    parsed: dict[str, str] = {}
+    for raw in text.splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
-        m = _LINE_RE.match(line)
-        if not m:
+        match = _LINE_RE.match(line)
+        if match is None:
             continue
-        key, value = m.group("key"), _strip_quotes(m.group("value").strip())
+        value = match.group("value").strip()
+        if value and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        parsed[match.group("key")] = value
+    return parsed
+
+
+def find_env_file(
+    start: Path | None = None,
+    filename: str = ".env",
+) -> Path | None:
+    """Walk upward from ``start`` (default: cwd) looking for ``filename``."""
+
+    current = (start or Path.cwd()).resolve()
+    if current.is_file():
+        current = current.parent
+    for candidate in (current, *current.parents):
+        path = candidate / filename
+        if path.is_file():
+            return path
+    return None
+
+
+def load_dotenv(
+    path: str | Path | None = None,
+    *,
+    override: bool = False,
+    search: bool = True,
+) -> Path | None:
+    """Load KEY=VALUE pairs into ``os.environ``.
+
+    Returns the path that was loaded, or ``None`` if nothing was found.
+    """
+    resolved: Path | None
+    if path is not None:
+        resolved = Path(path)
+        if not resolved.is_file():
+            return None
+    elif search:
+        resolved = find_env_file()
+        if resolved is None:
+            return None
+    else:
+        return None
+
+    for key, value in parse_dotenv(resolved.read_text(encoding="utf-8")).items():
         if override or key not in os.environ:
             os.environ[key] = value
-        applied[key] = value
-    return applied
+    return resolved
+
+
+def _require(name: str, value: str | None) -> str:
+    if value is None or value == "":
+        raise ValueError(f"{name} must be set (empty values are not allowed)")
+    return value
 
 
 @dataclass(frozen=True, slots=True)
 class Settings:
-    endpoint_url: str
-    region: str
-    access_key_id: str
-    secret_access_key: str
+    """Immutable snapshot of runtime configuration."""
+
+    aws_endpoint_url: str
+    aws_region: str
+    aws_access_key_id: str
+    aws_secret_access_key: str
     bronze_bucket: str
     silver_bucket: str
     gold_bucket: str
@@ -95,36 +116,63 @@ class Settings:
     gold_metrics_table: str
     bronze_events_queue: str
     bronze_events_queue_url: str
-    log_level: str
-    project: str
-    env: str
 
     @property
-    def prefix(self) -> str:
-        return f"{self.project}-{self.env}"
+    def buckets(self) -> tuple[str, str, str]:
+        return (self.bronze_bucket, self.silver_bucket, self.gold_bucket)
 
 
-def _get(name: str, defaults: dict[str, str] | None = None) -> str:
-    defaults = defaults or _DEFAULTS
-    return os.environ.get(name) or defaults.get(name, "")
+def load_settings(*, load_env_file: bool = True) -> Settings:
+    """Build Settings from the environment.
 
-
-def get_settings(*, load_env_file: bool = True) -> Settings:
+    When ``load_env_file`` is True, a discovered ``.env`` is applied first
+    (without overriding already-set process env vars).
+    """
     if load_env_file:
-        globals()["load_env_file"]()
+        load_dotenv()
+
     return Settings(
-        endpoint_url=_get("AWS_ENDPOINT_URL"),
-        region=_get("AWS_DEFAULT_REGION"),
-        access_key_id=_get("AWS_ACCESS_KEY_ID"),
-        secret_access_key=_get("AWS_SECRET_ACCESS_KEY"),
-        bronze_bucket=_get("BRONZE_BUCKET"),
-        silver_bucket=_get("SILVER_BUCKET"),
-        gold_bucket=_get("GOLD_BUCKET"),
-        pipeline_runs_table=_get("PIPELINE_RUNS_TABLE"),
-        gold_metrics_table=_get("GOLD_METRICS_TABLE"),
-        bronze_events_queue=_get("BRONZE_EVENTS_QUEUE"),
-        bronze_events_queue_url=_get("BRONZE_EVENTS_QUEUE_URL"),
-        log_level=_get("LOG_LEVEL"),
-        project=_get("PROJECT"),
-        env=_get("ENV"),
+        aws_endpoint_url=_require(
+            "AWS_ENDPOINT_URL", os.environ.get("AWS_ENDPOINT_URL", _DEFAULTS["AWS_ENDPOINT_URL"])
+        ),
+        aws_region=_require(
+            "AWS_DEFAULT_REGION",
+            os.environ.get("AWS_DEFAULT_REGION", _DEFAULTS["AWS_DEFAULT_REGION"]),
+        ),
+        aws_access_key_id=_require(
+            "AWS_ACCESS_KEY_ID",
+            os.environ.get("AWS_ACCESS_KEY_ID", _DEFAULTS["AWS_ACCESS_KEY_ID"]),
+        ),
+        aws_secret_access_key=_require(
+            "AWS_SECRET_ACCESS_KEY",
+            os.environ.get("AWS_SECRET_ACCESS_KEY", _DEFAULTS["AWS_SECRET_ACCESS_KEY"]),
+        ),
+        bronze_bucket=_require(
+            "BRONZE_BUCKET", os.environ.get("BRONZE_BUCKET", _DEFAULTS["BRONZE_BUCKET"])
+        ),
+        silver_bucket=_require(
+            "SILVER_BUCKET", os.environ.get("SILVER_BUCKET", _DEFAULTS["SILVER_BUCKET"])
+        ),
+        gold_bucket=_require(
+            "GOLD_BUCKET", os.environ.get("GOLD_BUCKET", _DEFAULTS["GOLD_BUCKET"])
+        ),
+        pipeline_runs_table=_require(
+            "PIPELINE_RUNS_TABLE",
+            os.environ.get("PIPELINE_RUNS_TABLE", _DEFAULTS["PIPELINE_RUNS_TABLE"]),
+        ),
+        gold_metrics_table=_require(
+            "GOLD_METRICS_TABLE",
+            os.environ.get("GOLD_METRICS_TABLE", _DEFAULTS["GOLD_METRICS_TABLE"]),
+        ),
+        bronze_events_queue=os.environ.get(
+            "BRONZE_EVENTS_QUEUE", _DEFAULTS["BRONZE_EVENTS_QUEUE"]
+        )
+        or "",
+        bronze_events_queue_url=os.environ.get(
+            "BRONZE_EVENTS_QUEUE_URL", _DEFAULTS["BRONZE_EVENTS_QUEUE_URL"]
+        )
+        or "",
     )
+
+
+get_settings = load_settings
