@@ -34,6 +34,14 @@ output "bronze_events_queue_url" {
   value = aws_sqs_queue.bronze_events.url
 }
 
+output "bronze_events_queue_arn" {
+  value = aws_sqs_queue.bronze_events.arn
+}
+
+output "bronze_notify_prefix" {
+  value = "events/"
+}
+
 output "lambda_role_arn" {
   value = aws_iam_role.lambda.arn
 }

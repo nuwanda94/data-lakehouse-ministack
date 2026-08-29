@@ -20,7 +20,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Quality gate as a first-class step
 - [x] feat: Pipeline run metadata & status tracking
 - [x] chore: Lambda packaging & deployment via Terraform
-- [ ] chore: Wire S3 event notifications or EventBridge
+- [x] chore: Wire S3 event notifications or EventBridge
 - [ ] test: Integration tests for full Bronze → Silver → Gold
 - [ ] docs: Document zone contracts & data dictionary
 

@@ -13,10 +13,15 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-29 12:41 IST
+- Completed: chore: Wire S3 event notifications or EventBridge
+- Next candidate: test: Integration tests for full Bronze → Silver → Gold (P0)
+- Notes: Terraform now attaches `aws_s3_bucket_notification.bronze_events` so `s3:ObjectCreated:*` under `events/` is delivered to `aws_sqs_queue.bronze_events` (queue policy allows `s3.amazonaws.com`). EventBridge is also enabled on the Bronze bucket for later SFN/rules. Contract lives in `lakehouse.ops.notify`. Ingest Lambda ESM was already subscribed to the queue. Next P0 is live MiniStack integration coverage for the full zone path.
+
 ## 2026-08-29 10:35 IST
 - Completed: chore: Lambda packaging & deployment via Terraform
 - Next candidate: chore: Wire S3 event notifications or EventBridge (P0)
-- Notes: Added `lakehouse.ops.lambda_package` + `scripts/package_lambda.py` to zip `src/lakehouse` (optional pydantic vendor). Terraform now creates a shared IAM role, CloudWatch log groups, and four zone Lambdas (`ingest` / `silver` / `quality` / `gold`) from `build/lambda/lakehouse.zip`, with env vars from bucket/table/queue outputs. Ingest is subscribed to the Bronze SQS queue via event-source mapping. `make package` runs before `make infra`. S3/EventBridge object notifications are intentionally left for the next chore.
+- Notes: Added `lakehouse.ops.lambda_package` + `scripts/package_lambda.py` to zip `src/lakehouse` (optional pydantic vendor). Terraform now creates a shared IAM role, CloudWatch log groups, and four zone Lambdas (`ingest` / `silver` / `quality` / `gold`) from `build/lambda/lakehouse.zip`, with env vars from bucket/table/queue outputs. Ingest is subscribed to the Bronze SQS queue via event-source mapping. S3/EventBridge object notifications are intentionally left for the next chore.
 
 ## 2026-08-28 23:00 IST
 - Completed: feat: Pipeline run metadata & status tracking

@@ -34,6 +34,7 @@ PUBLIC_MODULES = [
     "lakehouse.ops.outputs",
     "lakehouse.ops.runs",
     "lakehouse.ops.lambda_package",
+    "lakehouse.ops.notify",
 ]
 
 
@@ -52,7 +53,7 @@ def test_package_version_and_exports() -> None:
 
 
 def test_seed_and_pipeline_reexports() -> None:
-    from lakehouse.ops import package_lambda
+    from lakehouse.ops import expected_notification, package_lambda
     from lakehouse.pipeline import bronze_key, gold_key, new_run, persist_run, quarantine_key, run_quality_checks, silver_key
     from lakehouse.quality import evaluate_quality, run_quality_gate
     from lakehouse.seed import generate_events
@@ -68,3 +69,4 @@ def test_seed_and_pipeline_reexports() -> None:
     assert callable(evaluate_quality)
     assert callable(run_quality_gate)
     assert callable(package_lambda)
+    assert callable(expected_notification)
