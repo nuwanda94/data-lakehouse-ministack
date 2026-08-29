@@ -2,14 +2,33 @@
 
 from __future__ import annotations
 
+import pytest
+
 from lakehouse.cli import main
 from lakehouse.config import load_settings
 from lakehouse.pipeline import bronze_key, gold_key, run_quality_checks, silver_key
 from lakehouse.seed import generate_events
 
+_SETTING_KEYS = (
+    "AWS_ENDPOINT_URL",
+    "AWS_DEFAULT_REGION",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "BRONZE_BUCKET",
+    "SILVER_BUCKET",
+    "GOLD_BUCKET",
+    "PIPELINE_RUNS_TABLE",
+    "GOLD_METRICS_TABLE",
+    "BRONZE_EVENTS_QUEUE",
+    "BRONZE_EVENTS_QUEUE_URL",
+)
 
-def test_settings_defaults_match_env_example() -> None:
-    settings = load_settings()
+
+def test_settings_defaults_match_env_example(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Defaults must match .env.example when process env is clean."""
+    for key in _SETTING_KEYS:
+        monkeypatch.delenv(key, raising=False)
+    settings = load_settings(load_env_file=False)
     assert settings.bronze_bucket == "lakehouse-local-bronze"
     assert settings.silver_bucket == "lakehouse-local-silver"
     assert settings.gold_bucket == "lakehouse-local-gold"
