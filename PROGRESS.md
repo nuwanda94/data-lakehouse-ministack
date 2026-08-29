@@ -13,74 +13,55 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-29 22:00 IST
+- Completed: feat: Step Functions state machine
+- Next candidate: feat: Dead-letter handling & reprocessing (P1)
+- Notes: Checked in ASL (`infra/terraform/sfn.asl.json.tftpl`) plus `aws_sfn_state_machine.medallion` that invokes ingest → silver → quality → Choice → gold with Retry/Catch. `lakehouse.orchestration.sfn` is the source-of-truth graph and a local interpreter (`python -m lakehouse sfn` / `make sfn`) so MiniStack does not need working SFN for the inner loop. Unit tests lock the Terraform template to the Python definition.
+
 ## 2026-08-29 21:00 IST
 - Completed: ci: Pre-commit + required status checks
 - Next candidate: feat: Step Functions state machine (P1) or feat: Structured metrics (CloudWatch + custom) (P1)
-- Notes: Tightened `.pre-commit-config.yaml` (ruff, terraform_fmt, yaml/json/toml, secrets, EOF). Added a `pre-commit` GitHub Actions job plus `make pre-commit`. Documented required status-check names (`lint`, `pre-commit`, `unit`, `ministack-pipeline`) in `docs/ci.md` — branch protection still needs a one-time GitHub UI click by a repo admin. All Phase 4 P0 CI items are done; next work is Phase 2 reliability or remaining Phase 4 P1.
+- Notes: Tightened `.pre-commit-config.yaml`. Added a `pre-commit` GitHub Actions job plus `make pre-commit`. Documented required status-check names in `docs/ci.md`.
 
 ## 2026-08-29 20:02 IST
 - Completed: ci: Full CI pipeline with MiniStack
 - Next candidate: ci: Pre-commit + required status checks (P0)
-- Notes: Added `.github/workflows/ci.yml` — lint (ruff + terraform fmt) and hermetic unit jobs, then a gated `ministack-pipeline` job that runs `make up` → `infra` → `seed` → `pipeline` → `query` → `test-integration` against MiniStack on ubuntu-latest. `make ci` is a local alias for the same sequence. Next P0 is wiring pre-commit in CI plus documenting required status checks.
 
 ## 2026-08-29 19:05 IST
 - Completed: docs: Document zone contracts & data dictionary
-- Next candidate: ci: Full CI pipeline with MiniStack (P0)
-- Notes: Added `configs/contracts/` (bronze/silver/gold/quality/pipeline_run JSON), `docs/data-dictionary.md`, `lakehouse.contracts` loader, and `tests/test_contracts.py` so field lists and Hive keys stay aligned with `CommerceEvent` and zone helpers. Phase 1 P0 is complete. Highest remaining P0 is GitHub Actions against MiniStack (there is still no `.github/workflows` tree).
 
 ## 2026-08-29 18:06 IST
 - Completed: test: Integration tests for full Bronze → Silver → Gold
-- Next candidate: docs: Document zone contracts & data dictionary (P0)
-- Notes: Added `tests/test_medallion_integration.py` that chains ingest → silver → quality → gold against in-memory S3/DDB fakes (always in `make test`). Live MiniStack path is `@pytest.mark.integration`, skipped unless the endpoint is reachable or `LAKEHOUSE_LIVE=1`; `make test-integration` waits for health, injects Terraform outputs, and runs that marker. Next P0 is zone contracts / data dictionary under `configs/contracts/`.
 
 ## 2026-08-29 12:41 IST
 - Completed: chore: Wire S3 event notifications or EventBridge
-- Next candidate: test: Integration tests for full Bronze → Silver → Gold (P0)
-- Notes: Terraform now attaches `aws_s3_bucket_notification.bronze_events` so `s3:ObjectCreated:*` under `events/` is delivered to `aws_sqs_queue.bronze_events` (queue policy allows `s3.amazonaws.com`). EventBridge is also enabled on the Bronze bucket for later SFN/rules. Contract lives in `lakehouse.ops.notify`. Ingest Lambda ESM was already subscribed to the queue. Next P0 is live MiniStack integration coverage for the full zone path.
 
 ## 2026-08-29 10:35 IST
 - Completed: chore: Lambda packaging & deployment via Terraform
-- Next candidate: chore: Wire S3 event notifications or EventBridge (P0)
-- Notes: Added `lakehouse.ops.lambda_package` + `scripts/package_lambda.py` to zip `src/lakehouse` (optional pydantic vendor). Terraform now creates a shared IAM role, CloudWatch log groups, and four zone Lambdas (`ingest` / `silver` / `quality` / `gold`) from `build/lambda/lakehouse.zip`, with env vars from bucket/table/queue outputs. Ingest is subscribed to the Bronze SQS queue via event-source mapping. S3/EventBridge object notifications are intentionally left for the next chore.
 
 ## 2026-08-28 23:00 IST
 - Completed: feat: Pipeline run metadata & status tracking
-- Next candidate: chore: Lambda packaging & deployment via Terraform (P0)
-- Notes: Centralized DynamoDB run records in `lakehouse.pipeline.runs` (`new_run` / `complete_run` / `persist_run` / `get_run` / `list_runs`). Zone handlers (ingest, silver, quality, gold) and the local runner now share one item shape: run_id, status, zone, step, timestamps, error, objects, flattened metrics, quality JSON. `run_id` can be supplied via event payload or `LAKEHOUSE_RUN_ID` so steps stay correlated. CLI/Make: `python -m lakehouse runs` / `make runs`.
 
 ## 2026-08-28 21:00 IST
 - Completed: feat: Quality gate as a first-class step
-- Next candidate: feat: Pipeline run metadata & status tracking (P0)
-- Notes: Added `lakehouse.quality.gate` (`evaluate_quality` with named checks, fail-ratio threshold, fail vs quarantine action) and `lakehouse.quality.handler` that reads Silver `events/`, writes a `quality/dt=.../run_id=....json` report, records DynamoDB run status (`quality_failed` when the gate fails), and optionally quarantines bad rows. Local path: `python -m lakehouse quality` / `make quality`. Pandera/GE remain optional; the default gate is Pydantic + explicit checks so Lambda zips stay small.
 
 ## 2026-08-28 20:00 IST
 - Completed: feat: Gold aggregation Lambda
-- Next candidate: feat: Quality gate as a first-class step (P0)
-- Notes: Added `lakehouse.gold` — Lambda `handler` + `transform_gold` that reads Silver JSON (event-driven S3/SQS refs or batch list under `events/`), runs `aggregate_gold`, writes Hive-partitioned Gold JSON plus DynamoDB gold-metrics rows, and records run metadata. Local path: `python -m lakehouse gold` / `make gold`. Packaging the function as a Terraform Lambda zip remains the later chore.
 
 ## 2026-08-28 19:05 IST
 - Completed: feat: Silver transform Lambda
-- Next candidate: feat: Gold aggregation Lambda (P0) or feat: Quality gate as a first-class step (P0)
-- Notes: Added `lakehouse.silver` — Lambda `handler` + `transform_silver` that reads Bronze JSON (event-driven S3/SQS refs or batch list), runs `cleanse_to_silver`, writes Hive-partitioned Silver JSON plus `quarantine/` objects, and records run metrics in DynamoDB. Local path: `python -m lakehouse silver` / `make silver`. Packaging the function as a Terraform Lambda zip remains the later chore.
 
 ## 2026-08-28 18:08 IST
 - Completed: feat: Bronze event-driven ingestion via S3 → SQS → Lambda
-- Next candidate: feat: Quality gate as a first-class step (P0) or chore: Lambda packaging & deployment via Terraform (P0)
-- Notes: Added `lakehouse.ingest` — parse native S3 / SQS-wrapped S3 / EventBridge object refs, Lambda `handler` + `ingest_bronze_event` that HEAD/GETs Bronze objects under `events/` and writes a DynamoDB pipeline-run row. Terraform now creates `aws_sqs_queue.bronze_events` (notification wiring and Lambda zip remain later chores). Local drain: `python -m lakehouse ingest` / `make ingest`. Unit tests cover URL-decoded keys, skip of non-events prefixes, and missing-object failure.
 
 ## 2026-08-28 12:48 IST
 - Completed: test: Expand unit tests for seed + transform
-- Next candidate: feat: Bronze event-driven ingestion via S3 → SQS → Lambda (P0)
-- Notes: Added `lakehouse.transforms.events` (parse/quarantine, late-event lookback, gold aggregate) plus `tests/test_seed.py` and `tests/test_transforms.py`.
 
 ## 2026-08-28 12:36 IST
 - Completed: docs: Add ADR-003: Local orchestration vs Step Functions
-- Next candidate: test: Expand unit tests for seed + transform (P0)
-- Notes: Added `docs/adr/003-local-orchestration-vs-step-functions.md` (Accepted for v0.1).
 
 ## 2026-08-28 09:03 IST
 - Completed: docs: Expand README with exact run instructions & screenshots
-- Next candidate: docs: Add ADR-003: Local orchestration vs Step Functions (P0)
 
 ## 2026-08-27 23:01 IST
 - Completed: chore: Add `scripts/get_outputs.sh` or Python helper
