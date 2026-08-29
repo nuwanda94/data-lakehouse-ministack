@@ -5,11 +5,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from lakehouse.contracts import load_contract
-from lakehouse.models import CommerceEvent, QuarantineRow
+from lakehouse.models import CommerceEvent
 from lakehouse.pipeline.bronze import bronze_key
 from lakehouse.pipeline.gold import gold_key
-from lakehouse.pipeline.quality import quarantine_key
-from lakehouse.pipeline.silver import silver_key
+from lakehouse.pipeline.silver import quarantine_key, silver_key
+from lakehouse.transforms.events import QuarantineRow
 
 
 def test_contracts_exist_and_have_fields() -> None:
@@ -50,16 +50,14 @@ def test_zone_keys_stable() -> None:
         channel="web",
         payload={},
     )
-    assert (
-        bronze_key(event) == f"events/dt={event.event_ts.date().isoformat()}/{event.event_id}.json"
-    )
+    assert bronze_key(event) == f"events/dt={event.event_ts.date().isoformat()}/{event.event_id}.json"
     assert (
         silver_key(event)
         == f"events/dt={event.event_ts.date().isoformat()}/channel={event.channel}/{event.event_id}.json"
     )
-    assert (
-        gold_key(event.event_ts.date())
-        == f"agg/dt={event.event_ts.date().isoformat()}/daily_metrics.json"
+    # gold_key signature is keyword-only metric/day
+    assert gold_key(metric="daily_metrics", day=event.event_ts.date().isoformat()) == (
+        f"metrics/metric=daily_metrics/dt={event.event_ts.date().isoformat()}/daily_metrics.json"
     )
     q = quarantine_key(QuarantineRow(payload={"event_id": "evt-x"}, reason="missing_event_id"))
     assert q == "quarantine/reason=missing_event_id/evt-x.json"
