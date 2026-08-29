@@ -27,7 +27,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 ## Phase 2 — Orchestration & Reliability (P1)
 
 - [x] feat: Step Functions state machine
-- [ ] feat: Dead-letter handling & reprocessing
+- [x] feat: Dead-letter handling & reprocessing
 - [ ] feat: Idempotency keys & exactly-once semantics
 - [ ] feat: Late-arriving data handling
 - [ ] chore: Centralized configuration (SSM or config file)
