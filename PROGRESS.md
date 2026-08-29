@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-29 21:00 IST
+- Completed: ci: Pre-commit + required status checks
+- Next candidate: feat: Step Functions state machine (P1) or feat: Structured metrics (CloudWatch + custom) (P1)
+- Notes: Tightened `.pre-commit-config.yaml` (ruff, terraform_fmt, yaml/json/toml, secrets, EOF). Added a `pre-commit` GitHub Actions job plus `make pre-commit`. Documented required status-check names (`lint`, `pre-commit`, `unit`, `ministack-pipeline`) in `docs/ci.md` — branch protection still needs a one-time GitHub UI click by a repo admin. All Phase 4 P0 CI items are done; next work is Phase 2 reliability or remaining Phase 4 P1.
+
 ## 2026-08-29 20:02 IST
 - Completed: ci: Full CI pipeline with MiniStack
 - Next candidate: ci: Pre-commit + required status checks (P0)
