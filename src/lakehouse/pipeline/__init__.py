@@ -2,6 +2,7 @@
 
 from lakehouse.pipeline.bronze import bronze_key
 from lakehouse.pipeline.gold import gold_key
+from lakehouse.pipeline.idempotency import deterministic_run_id, idempotency_key
 from lakehouse.pipeline.quality import run_quality_checks
 from lakehouse.pipeline.runs import complete_run, new_run, persist_run
 from lakehouse.pipeline.silver import quarantine_key, silver_key
@@ -15,4 +16,6 @@ __all__ = [
     "new_run",
     "complete_run",
     "persist_run",
+    "idempotency_key",
+    "deterministic_run_id",
 ]

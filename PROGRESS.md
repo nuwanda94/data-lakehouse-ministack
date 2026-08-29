@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-29 23:43 IST
+- Completed: feat: Idempotency keys & exactly-once semantics
+- Next candidate: feat: Late-arriving data handling (P1)
+- Notes: Zone handlers now derive `run_id` from `idempotency_key(scope, sorted object keys)`. A succeeded DynamoDB run is replayed (`idempotent_replay=true`) instead of being rewritten. Failed runs stay retryable under the same id. See `docs/idempotency.md` and `lakehouse.pipeline.idempotency`.
+
 ## 2026-08-29 23:00 IST
 - Completed: feat: Dead-letter handling & reprocessing
 - Next candidate: feat: Idempotency keys & exactly-once semantics (P1)
