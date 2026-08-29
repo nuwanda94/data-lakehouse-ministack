@@ -46,6 +46,7 @@ src = ["src", "tests", "scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["SIM101", "SIM108"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["lakehouse"]
