@@ -42,6 +42,22 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_redrive.add_argument("--max", type=int, default=10, dest="max_messages")
 
+    p_reprocess = sub.add_parser(
+        "reprocess",
+        help="Rebuild Gold partitions for a late-arriving lookback window",
+    )
+    p_reprocess.add_argument(
+        "--lookback-days",
+        type=int,
+        default=None,
+        help="Override LOOKBACK_DAYS (inclusive calendar days behind as-of)",
+    )
+    p_reprocess.add_argument(
+        "--as-of",
+        default=None,
+        help="Window end date or ISO timestamp (default: now UTC)",
+    )
+
     p_settings = sub.add_parser("settings", help="Print resolved settings as JSON")
     p_settings.add_argument("--no-dotenv", action="store_true")
 
@@ -78,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
             "bronze_events_queue_url": settings.bronze_events_queue_url,
             "bronze_events_dlq": settings.bronze_events_dlq,
             "bronze_events_dlq_url": settings.bronze_events_dlq_url,
+            "lookback_days": settings.lookback_days,
         }
         print(json.dumps(payload, indent=2))
         return 0
@@ -171,6 +188,21 @@ def main(argv: list[str] | None = None) -> int:
         result = redrive_dlq(max_messages=args.max_messages)
         print(json.dumps(result, indent=2, default=str))
         return 0 if not result.get("errors") else 1
+
+    if args.command == "reprocess":
+        from datetime import datetime
+
+        from lakehouse.ops.reprocess import reprocess_gold_window
+
+        as_of = None
+        if args.as_of:
+            as_of = datetime.fromisoformat(str(args.as_of).replace("Z", "+00:00"))
+        result = reprocess_gold_window(
+            as_of=as_of,
+            lookback_days=args.lookback_days,
+        )
+        print(json.dumps(result, indent=2, default=str))
+        return 0 if result.get("status") != "failed" else 1
 
     if args.command == "query":
         from lakehouse.ops.query import query_gold
