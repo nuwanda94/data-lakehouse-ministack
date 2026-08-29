@@ -84,7 +84,18 @@ class FakeDDB:
         self.items: list[dict[str, Any]] = []
 
     def put_item(self, **kwargs: Any) -> dict[str, Any]:
-        self.items.append(kwargs["Item"])
+        item = kwargs["Item"]
+        run_id = item.get("run_id", {}).get("S")
+        if run_id:
+            self.items = [i for i in self.items if i.get("run_id", {}).get("S") != run_id]
+        self.items.append(item)
+        return {}
+
+    def get_item(self, **kwargs: Any) -> dict[str, Any]:
+        run_id = kwargs["Key"]["run_id"]["S"]
+        for item in self.items:
+            if item.get("run_id", {}).get("S") == run_id:
+                return {"Item": item}
         return {}
 
 
