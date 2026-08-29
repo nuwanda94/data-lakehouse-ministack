@@ -46,7 +46,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 ## Phase 4 — Observability & Platform (remaining P0/P1)
 
 - [x] ci: Full CI pipeline with MiniStack (P0)
-- [ ] ci: Pre-commit + required status checks (P0)
+- [x] ci: Pre-commit + required status checks (P0)
 - [ ] feat: Structured metrics (CloudWatch + custom)
 - [ ] feat: Schema evolution & contract testing
 - [ ] feat: Multi-environment support (local / real AWS)
