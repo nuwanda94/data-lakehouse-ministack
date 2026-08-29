@@ -1,4 +1,4 @@
-"""Package entry point for `python -m lakehouse` and the console script."""
+"""CLI entrypoint for local lakehouse operations."""
 
 from __future__ import annotations
 
@@ -6,59 +6,42 @@ import argparse
 import json
 import sys
 
-from lakehouse import __version__, load_settings
-
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="lakehouse", description="MiniStack lakehouse CLI")
-    parser.add_argument("--version", action="store_true", help="Print package version")
-    parser.add_argument(
-        "command",
-        nargs="?",
-        choices=(
-            "settings",
-            "health",
-            "seed",
-            "pipeline",
-            "query",
-            "outputs",
-            "ingest",
-            "silver",
-            "quality",
-            "gold",
-            "runs",
-        ),
-        help="Command to run.",
+    parser = argparse.ArgumentParser(prog="lakehouse")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    sub.add_parser(
+        "health",
+        help="Probe MiniStack S3 + DynamoDB and print a JSON report",
     )
-    parser.add_argument("--count", type=int, default=50, help="Events to seed (seed only)")
-    parser.add_argument("--run-id", default=None, help="Pipeline run id (runs only)")
-    parser.add_argument("--limit", type=int, default=25, help="Max runs to list (runs only)")
-    parser.add_argument("--tf-dir", default=None, help="Terraform directory (outputs only)")
-    parser.add_argument(
-        "--export",
-        action="store_true",
-        help="Prefix KEY=value lines with export (outputs only)",
-    )
-    parser.add_argument("--json", action="store_true", dest="as_json", help="JSON output (outputs)")
-    parser.add_argument("--write-env", default=None, help="Write dotenv file (outputs only)")
-    parser.add_argument(
-        "--on-fail",
-        choices=("fail", "quarantine"),
-        default="fail",
-        help="Quality gate action when checks fail (quality only)",
-    )
+
+    p_seed = sub.add_parser("seed", help="Write synthetic commerce events to Bronze")
+    p_seed.add_argument("--count", type=int, default=20)
+
+    sub.add_parser("pipeline", help="Run Bronze → Silver → quality → Gold locally")
+    sub.add_parser("ingest", help="Drain Bronze SQS / process pending Bronze objects")
+    sub.add_parser("silver", help="Cleanse Bronze → Silver")
+    sub.add_parser("quality", help="Run Silver quality gate")
+    sub.add_parser("gold", help="Aggregate Silver → Gold metrics")
+    sub.add_parser("query", help="Print Gold summary")
+    sub.add_parser("runs", help="List pipeline runs from DynamoDB")
+
+    p_settings = sub.add_parser("settings", help="Print resolved settings as JSON")
+    p_settings.add_argument("--no-dotenv", action="store_true")
+
+    p_outputs = sub.add_parser("outputs", help="Emit Terraform outputs as env exports")
+    p_outputs.add_argument("--tf-dir", default="infra/terraform")
+    p_outputs.add_argument("--export", action="store_true")
+    p_outputs.add_argument("--as-json", action="store_true")
+    p_outputs.add_argument("--write-env", default=None)
+
     args = parser.parse_args(argv)
 
-    if args.version:
-        print(__version__)
-        return 0
-
-    if args.command is None:
-        parser.print_help()
-        return 0
-
     if args.command == "settings":
-        settings = load_settings()
+        from lakehouse.config import load_settings
+
+        settings = load_settings(load_env_file=not args.no_dotenv)
         payload = {
             "aws_endpoint_url": settings.aws_endpoint_url,
             "aws_region": settings.aws_region,
@@ -68,6 +51,7 @@ def main(argv: list[str] | None = None) -> int:
             "pipeline_runs_table": settings.pipeline_runs_table,
             "gold_metrics_table": settings.gold_metrics_table,
             "bronze_events_queue": settings.bronze_events_queue,
+            "bronze_events_queue_url": settings.bronze_events_queue_url,
         }
         print(json.dumps(payload, indent=2))
         return 0
@@ -89,9 +73,10 @@ def main(argv: list[str] | None = None) -> int:
 
         report = check_health()
         print(json.dumps(report, indent=2))
+        # Partial service errors are warnings; only fail when nothing is reachable
+        # (check_health already raises if both S3 and DynamoDB are down).
         if report.get("errors"):
             print("WARNING: partial health failure", file=sys.stderr)
-            return 1
         return 0
 
     if args.command == "seed":
@@ -109,36 +94,32 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "ingest":
-        from lakehouse.ingest.bronze_handler import drain_bronze_queue
+        from lakehouse.ingest.bronze_handler import ingest_bronze_event
 
-        result = drain_bronze_queue()
+        result = ingest_bronze_event(None)
         print(json.dumps(result, indent=2))
-        return 0
+        return 0 if result.get("status") != "failed" else 1
 
     if args.command == "silver":
-        from lakehouse.silver.handler import run_silver
+        from lakehouse.silver.handler import transform_silver
 
-        result = run_silver()
+        result = transform_silver(None)
         print(json.dumps(result, indent=2))
-        return 0
+        return 0 if result.get("status") != "failed" else 1
 
     if args.command == "quality":
-        from lakehouse.quality.handler import run_quality
+        from lakehouse.quality.handler import run_quality_gate
 
-        result = run_quality(on_fail=args.on_fail)
+        result = run_quality_gate(None)
         print(json.dumps(result, indent=2))
-        if result.get("status") == "quality_failed":
-            return 2
-        if result.get("status") == "failed":
-            return 1
-        return 0
+        return 0 if result.get("status") not in {"failed", "quality_failed"} else 1
 
     if args.command == "gold":
-        from lakehouse.gold.handler import run_gold
+        from lakehouse.gold.handler import transform_gold
 
-        result = run_gold()
+        result = transform_gold(None)
         print(json.dumps(result, indent=2))
-        return 0
+        return 0 if result.get("status") != "failed" else 1
 
     if args.command == "query":
         from lakehouse.ops.query import query_gold
@@ -148,17 +129,15 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.command == "runs":
-        from lakehouse.ops.runs import query_runs
+        from lakehouse.ops.runs import list_runs
 
-        result = query_runs(run_id=args.run_id, limit=args.limit)
+        result = list_runs()
         print(json.dumps(result, indent=2))
-        if args.run_id and not result.get("found"):
-            return 1
         return 0
 
-    parser.print_help()
-    return 0
+    parser.error(f"unknown command: {args.command}")
+    return 2
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())
