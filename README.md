@@ -63,10 +63,11 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Seed / pipeline / query CLI | Done | Local Python runner |
 | README + runbook | Done | This file |
 | ADR-003 (runner vs Step Functions) | Done | [docs/adr/003](docs/adr/003-local-orchestration-vs-step-functions.md) |
-| Unit tests for seed + transform | Open | Phase 0 test |
-| Event-driven Bronze Lambda | Open | Phase 1 P0 |
-| Silver / Gold Lambdas | Open | Phase 1 P0 |
-| Quality gate (Pandera / GE) | Open | Phase 1 P0 |
+| Unit tests for seed + transform | Done | `tests/test_seed.py`, `tests/test_transforms.py` |
+| Event-driven Bronze Lambda | Done | S3 → SQS → ingest handler |
+| Silver / Gold Lambdas | Done | handlers + Terraform zip |
+| Quality gate | Done | `lakehouse.quality.gate` |
+| Bronze → Silver → Gold integration tests | Done | hermetic + live MiniStack marker |
 | Glue / Athena / dbt | Later | Phase 3 |
 
 Live checklist: [`TODO.md`](TODO.md). Run log: [`PROGRESS.md`](PROGRESS.md).
@@ -99,7 +100,8 @@ make outputs     # print KEY=value from terraform output / state / defaults
 make seed        # synthetic events → bronze
 make pipeline    # bronze → silver → gold (local runner)
 make query       # gold object + metrics summary (JSON)
-make test        # unit tests
+make test        # hermetic unit + zone-path tests
+make test-integration  # optional live MiniStack path
 ```
 
 Expected shape of a clean run:
@@ -110,7 +112,7 @@ Expected shape of a clean run:
 3. `make seed` prints JSON with the Bronze key and event count (default 50).
 4. `make pipeline` prints a `run_id`, zone object keys, and status.
 5. `make query` prints Gold + DynamoDB metric rows.
-6. `make test` is offline (no MiniStack required).
+6. `make test` is offline (no MiniStack required). Live zone-path coverage is `make test-integration` after infra.
 
 Tear down:
 
@@ -132,7 +134,8 @@ make clean       # down + delete local terraform state
 | `make seed` | eval outputs, then `python -m lakehouse seed` |
 | `make pipeline` | eval outputs, then `python -m lakehouse pipeline` |
 | `make query` | eval outputs, then `python -m lakehouse query` |
-| `make test` | `pytest tests` |
+| `make test` | `pytest tests -m "not integration"` |
+| `make test-integration` | live MiniStack Bronze → Silver → Gold |
 | `make logs` | MiniStack container logs |
 
 `make seed` / `pipeline` / `query` **eval** `scripts/get_outputs.sh` so bucket
