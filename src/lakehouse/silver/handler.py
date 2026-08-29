@@ -23,6 +23,7 @@ from lakehouse.pipeline.idempotency import (
     lookup_succeeded,
     replay_result,
 )
+from lakehouse.pipeline.late import lookback_delta, watermark_from_event
 from lakehouse.pipeline.runs import new_run
 from lakehouse.pipeline.silver import quarantine_key, silver_key
 from lakehouse.transforms.events import SilverBatch, cleanse_to_silver
@@ -205,7 +206,11 @@ def transform_silver(
             )
 
     run = new_run(zone="silver", status="running", run_id=run_id)
-    batch = cleanse_to_silver(raw_records)
+    batch = cleanse_to_silver(
+        raw_records,
+        watermark=watermark_from_event(event),
+        lookback=lookback_delta(resolved.lookback_days),
+    )
     silver_keys, quarantine_keys = _write_silver(s3_client, resolved.silver_bucket, batch)
 
     metrics: dict[str, int | str] = {
@@ -214,6 +219,7 @@ def transform_silver(
         "late": len(batch.late),
         "silver_written": len(silver_keys),
         "quarantine_written": len(quarantine_keys),
+        "lookback_days": resolved.lookback_days,
     }
     if key:
         metrics["idempotency_key"] = key
