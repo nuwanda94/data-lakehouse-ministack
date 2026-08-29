@@ -116,9 +116,7 @@ def run_to_item(run: PipelineRun) -> dict[str, Any]:
                 continue
             if isinstance(value, bool):
                 item[key] = {"BOOL": value}
-            elif isinstance(value, int):
-                item[key] = {"N": str(value)}
-            elif isinstance(value, float):
+            elif isinstance(value, (int, float)):
                 item[key] = {"N": str(value)}
             else:
                 item[key] = {"S": str(value)}
@@ -130,7 +128,9 @@ def _attr_value(attr: dict[str, Any]) -> Any:
         return attr["S"]
     if "N" in attr:
         raw = attr["N"]
-        return int(raw) if raw.isdigit() or (raw.startswith("-") and raw[1:].isdigit()) else float(raw)
+        if raw.isdigit() or (raw.startswith("-") and raw[1:].isdigit()):
+            return int(raw)
+        return float(raw)
     if "BOOL" in attr:
         return attr["BOOL"]
     if "NULL" in attr:
