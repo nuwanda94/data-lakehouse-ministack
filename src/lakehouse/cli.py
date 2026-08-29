@@ -33,6 +33,15 @@ def main(argv: list[str] | None = None) -> int:
     )
     sub.add_parser("sfn-def", help="Print the medallion Amazon States Language definition")
 
+    p_dlq = sub.add_parser("dlq", help="Peek the Bronze events dead-letter queue")
+    p_dlq.add_argument("--max", type=int, default=10, dest="max_messages")
+
+    p_redrive = sub.add_parser(
+        "redrive",
+        help="Move Bronze DLQ messages back onto the source events queue",
+    )
+    p_redrive.add_argument("--max", type=int, default=10, dest="max_messages")
+
     p_settings = sub.add_parser("settings", help="Print resolved settings as JSON")
     p_settings.add_argument("--no-dotenv", action="store_true")
 
@@ -67,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
             "gold_metrics_table": settings.gold_metrics_table,
             "bronze_events_queue": settings.bronze_events_queue,
             "bronze_events_queue_url": settings.bronze_events_queue_url,
+            "bronze_events_dlq": settings.bronze_events_dlq,
+            "bronze_events_dlq_url": settings.bronze_events_dlq_url,
         }
         print(json.dumps(payload, indent=2))
         return 0
@@ -146,6 +157,20 @@ def main(argv: list[str] | None = None) -> int:
 
         sys.stdout.write(definition_json())
         return 0
+
+    if args.command == "dlq":
+        from lakehouse.ops.dlq import list_dlq
+
+        result = list_dlq(max_messages=args.max_messages)
+        print(json.dumps(result, indent=2, default=str))
+        return 0
+
+    if args.command == "redrive":
+        from lakehouse.ops.dlq import redrive_dlq
+
+        result = redrive_dlq(max_messages=args.max_messages)
+        print(json.dumps(result, indent=2, default=str))
+        return 0 if not result.get("errors") else 1
 
     if args.command == "query":
         from lakehouse.ops.query import query_gold
