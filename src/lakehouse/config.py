@@ -122,13 +122,20 @@ class Settings:
         return (self.bronze_bucket, self.silver_bucket, self.gold_bucket)
 
 
-def load_settings(*, load_env_file: bool = True) -> Settings:
+def load_settings(
+    *,
+    load_env_file: bool = True,
+    env_file: str | Path | None = None,
+) -> Settings:
     """Build Settings from the environment.
 
     When ``load_env_file`` is True, a discovered ``.env`` is applied first
-    (without overriding already-set process env vars).
+    (without overriding already-set process env vars). Pass ``env_file`` to
+    load a specific path instead of searching.
     """
-    if load_env_file:
+    if env_file is not None:
+        load_dotenv(env_file, search=False)
+    elif load_env_file:
         load_dotenv()
 
     return Settings(
