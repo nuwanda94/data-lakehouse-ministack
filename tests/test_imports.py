@@ -19,6 +19,7 @@ PUBLIC_MODULES = [
     "lakehouse.pipeline.gold",
     "lakehouse.pipeline.quality",
     "lakehouse.pipeline.runs",
+    "lakehouse.pipeline.idempotency",
     "lakehouse.ingest",
     "lakehouse.ingest.s3_events",
     "lakehouse.ingest.bronze_handler",
@@ -61,7 +62,9 @@ def test_seed_and_pipeline_reexports() -> None:
     from lakehouse.orchestration import build_definition, run_sfn_local
     from lakehouse.pipeline import (
         bronze_key,
+        deterministic_run_id,
         gold_key,
+        idempotency_key,
         new_run,
         persist_run,
         quarantine_key,
@@ -79,6 +82,8 @@ def test_seed_and_pipeline_reexports() -> None:
     assert callable(run_quality_checks)
     assert callable(new_run)
     assert callable(persist_run)
+    assert callable(idempotency_key)
+    assert callable(deterministic_run_id)
     assert callable(evaluate_quality)
     assert callable(run_quality_gate)
     assert callable(package_lambda)
