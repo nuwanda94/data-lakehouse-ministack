@@ -48,9 +48,7 @@ class FakeS3:
         prefix = kwargs.get("Prefix", "")
         bucket = kwargs["Bucket"]
         contents = [
-            {"Key": key}
-            for (b, key) in self.objects
-            if b == bucket and key.startswith(prefix)
+            {"Key": key} for (b, key) in self.objects if b == bucket and key.startswith(prefix)
         ]
         return {"Contents": contents, "IsTruncated": False}
 
