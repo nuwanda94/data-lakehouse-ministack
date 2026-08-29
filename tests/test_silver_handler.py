@@ -58,7 +58,18 @@ class FakeDDB:
         self.items: list[dict[str, Any]] = []
 
     def put_item(self, **kwargs: Any) -> dict[str, Any]:
-        self.items.append(kwargs["Item"])
+        item = kwargs["Item"]
+        run_id = item.get("run_id", {}).get("S")
+        if run_id:
+            self.items = [i for i in self.items if i.get("run_id", {}).get("S") != run_id]
+        self.items.append(item)
+        return {}
+
+    def get_item(self, **kwargs: Any) -> dict[str, Any]:
+        run_id = kwargs["Key"]["run_id"]["S"]
+        for item in self.items:
+            if item.get("run_id", {}).get("S") == run_id:
+                return {"Item": item}
         return {}
 
 
@@ -117,7 +128,6 @@ def test_event_driven_writes_silver_and_quarantine() -> None:
     }
     result = transform_silver(event, settings=_settings(), s3=s3, ddb=ddb)
     assert result["status"] == "succeeded"
-    # Seed-like timestamps from Jan 2026 are older than the 2-day lookback.
     assert result["valid"] + result["late"] == 1
     assert result["quarantined"] == 1
     assert result["metrics"]["silver_written"] == 1
@@ -130,6 +140,10 @@ def test_event_driven_writes_silver_and_quarantine() -> None:
     assert ddb.items[0]["zone"]["S"] == "silver"
     assert int(ddb.items[0]["valid"]["N"]) + int(ddb.items[0]["late"]["N"]) == 1
     assert ddb.items[0]["quarantined"]["N"] == "1"
+
+    replay = transform_silver(event, settings=_settings(), s3=s3, ddb=ddb)
+    assert replay["idempotent_replay"] is True
+    assert replay["run_id"] == result["run_id"]
 
 
 def test_batch_mode_lists_bronze_prefix() -> None:
