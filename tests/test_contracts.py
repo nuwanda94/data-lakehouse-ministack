@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
-from lakehouse.contracts import CONTRACT_NAMES, contract_field_names, load_all_contracts, load_contract
+from lakehouse.contracts import (
+    CONTRACT_NAMES,
+    contract_field_names,
+    load_all_contracts,
+    load_contract,
+)
 from lakehouse.models import CommerceEvent, PipelineRun
 from lakehouse.pipeline.bronze import bronze_key
 from lakehouse.pipeline.gold import gold_key
@@ -10,7 +15,6 @@ from lakehouse.pipeline.silver import quarantine_key, silver_key
 from lakehouse.quality.gate import evaluate_quality
 from lakehouse.seed.generate import generate_events
 from lakehouse.transforms.events import QuarantineRow
-
 
 COMMERCE_FIELDS = set(CommerceEvent.model_fields)
 
@@ -25,8 +29,8 @@ def test_all_contract_files_load() -> None:
 def test_bronze_and_silver_cover_commerce_event() -> None:
     bronze = set(contract_field_names("bronze"))
     silver = set(contract_field_names("silver"))
-    assert COMMERCE_FIELDS <= bronze
-    assert COMMERCE_FIELDS <= silver
+    assert bronze >= COMMERCE_FIELDS
+    assert silver >= COMMERCE_FIELDS
     assert "_late" in silver
     assert "_late" not in bronze
 
@@ -57,10 +61,19 @@ def test_pipeline_run_contract_covers_model() -> None:
 
 def test_partition_key_templates_match_helpers() -> None:
     event = generate_events(1)[0]
-    assert bronze_key(event) == f"events/dt={event.event_ts.date().isoformat()}/{event.event_id}.json"
-    assert silver_key(event) == (
-        f"events/event_type={event.event_type}/dt={event.event_ts.date().isoformat()}/{event.event_id}.json"
+    assert (
+        bronze_key(event)
+        == f"events/dt={event.event_ts.date().isoformat()}/{event.event_id}.json"
     )
-    assert gold_key(metric="purchase", day="2026-01-01") == "metrics/metric=purchase/dt=2026-01-01/part-000.json"
-    q = quarantine_key(QuarantineRow(payload={"event_id": "evt-x"}, reason="missing_event_id"))
+    assert silver_key(event) == (
+        f"events/event_type={event.event_type}/dt="
+        f"{event.event_ts.date().isoformat()}/{event.event_id}.json"
+    )
+    assert (
+        gold_key(metric="purchase", day="2026-01-01")
+        == "metrics/metric=purchase/dt=2026-01-01/part-000.json"
+    )
+    q = quarantine_key(
+        QuarantineRow(payload={"event_id": "evt-x"}, reason="missing_event_id")
+    )
     assert q == "quarantine/reason=missing_event_id/evt-x.json"
