@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""CLI wrapper around ``lakehouse.ops.lambda_package``.
+"""Build a Lambda deployment zip from the lakehouse package.
 
+Usage:
     python scripts/package_lambda.py
     python scripts/package_lambda.py --out build/lambda/lakehouse.zip --no-vendor
 """
@@ -11,34 +12,29 @@ import argparse
 import sys
 from pathlib import Path
 
+# Allow running without install: add src/ to path
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
+sys.path.insert(0, str(ROOT / "src"))
 
-from lakehouse.ops.lambda_package import DEFAULT_BUILD_DIR, DEFAULT_ZIP, package  # noqa: E402
+from lakehouse.ops.lambda_package import build_lambda_zip  # noqa: E402
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out", type=Path, default=DEFAULT_ZIP, help="Zip path")
-    parser.add_argument("--build-dir", type=Path, default=DEFAULT_BUILD_DIR)
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=ROOT / "build" / "lambda" / "lakehouse.zip",
+        help="Output zip path",
+    )
     parser.add_argument(
         "--no-vendor",
         action="store_true",
-        help="Skip pip-install of pydantic (unit tests / already-vendored tree)",
+        help="Skip vendoring third-party deps (slim package)",
     )
-    return parser.parse_args(argv)
-
-
-def main(argv: list[str] | None = None) -> int:
-    args = parse_args(argv)
-    zip_path = package(
-        build_dir=args.build_dir,
-        zip_path=args.out,
-        vendor=not args.no_vendor,
-    )
-    print(f"wrote {zip_path} ({zip_path.stat().st_size} bytes)")
+    args = parser.parse_args()
+    path = build_lambda_zip(out=args.out, vendor=not args.no_vendor)
+    print(path)
     return 0
 
 
