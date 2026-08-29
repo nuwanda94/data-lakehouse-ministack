@@ -116,7 +116,7 @@ def run_to_item(run: PipelineRun) -> dict[str, Any]:
                 continue
             if isinstance(value, bool):
                 item[key] = {"BOOL": value}
-            elif isinstance(value, (int, float)):
+            elif isinstance(value, int | float):
                 item[key] = {"N": str(value)}
             else:
                 item[key] = {"S": str(value)}
@@ -181,7 +181,7 @@ def item_to_run(item: dict[str, Any]) -> PipelineRun:
             if key in _RESERVED:
                 continue
             value = _attr_value(attr) if isinstance(attr, dict) else attr
-            if isinstance(value, (int, float, str)):
+            if isinstance(value, int | float | str):
                 metrics[key] = value
 
     zone = _s("zone")
