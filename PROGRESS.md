@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-30 00:10 IST
+- Completed: feat: Late-arriving data handling
+- Next candidate: chore: Centralized configuration (SSM or config file) (P1)
+- Notes: LOOKBACK_DAYS (default 2) is now a Settings field used as the Silver late watermark. `python -m lakehouse reprocess` / `make reprocess` rebuilds Gold partitions for the inclusive event-time window from the full Silver day, not just the late rows. See `docs/late-arriving.md` and `lakehouse.pipeline.late`.
+
 ## 2026-08-29 23:43 IST
 - Completed: feat: Idempotency keys & exactly-once semantics
 - Next candidate: feat: Late-arriving data handling (P1)

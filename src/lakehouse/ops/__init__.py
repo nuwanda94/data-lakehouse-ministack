@@ -7,6 +7,7 @@ from lakehouse.ops.notify import expected_notification, notification_matches
 from lakehouse.ops.outputs import collect_outputs
 from lakehouse.ops.pipeline import run_pipeline
 from lakehouse.ops.query import query_gold
+from lakehouse.ops.reprocess import reprocess_gold_window
 from lakehouse.ops.runs import query_runs
 from lakehouse.ops.seed import seed_bronze
 
@@ -19,6 +20,7 @@ __all__ = [
     "collect_outputs",
     "list_dlq",
     "redrive_dlq",
+    "reprocess_gold_window",
     "package_lambda",
     "expected_notification",
     "notification_matches",
