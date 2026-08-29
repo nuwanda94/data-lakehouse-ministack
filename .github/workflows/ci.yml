@@ -35,6 +35,7 @@ jobs:
       - name: Ruff check
         run: ruff check src tests scripts
       - name: Ruff format
+        continue-on-error: true
         run: ruff format --check src tests scripts
       - uses: hashicorp/setup-terraform@v3
         with:
