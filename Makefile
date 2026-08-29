@@ -53,7 +53,7 @@ install:
 up:
 	@command -v docker >/dev/null || { echo "ERROR: docker is required for make up" >&2; exit 1; }
 	$(COMPOSE) up -d
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@$(MAKE) --no-print-directory health
 
 down:
@@ -63,7 +63,7 @@ logs:
 	$(COMPOSE) logs --tail=100 ministack
 
 health:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@$(PYTHON) -m lakehouse health
 
 package:
@@ -71,13 +71,13 @@ package:
 
 infra-plan: package
 	@command -v terraform >/dev/null || { echo "ERROR: terraform is required for make infra" >&2; exit 1; }
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	cd $(TF_DIR) && terraform init -input=false
 	cd $(TF_DIR) && terraform plan -input=false -out=tfplan
 
 infra: package
 	@command -v terraform >/dev/null || { echo "ERROR: terraform is required for make infra" >&2; exit 1; }
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	cd $(TF_DIR) && terraform init -input=false
 	cd $(TF_DIR) && terraform apply -input=false -auto-approve
 	@echo "--- terraform outputs ---"
@@ -91,42 +91,42 @@ outputs:
 	@bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR)
 
 seed:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse seed
 
 pipeline:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse pipeline
 
 ingest:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse ingest
 
 silver:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse silver
 
 quality:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse quality
 
 gold:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse gold
 
 query:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse query
 
 runs:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse runs
 
 test:
 	$(PYTHON) -m pytest $(ROOT)/tests -m "not integration"
 
 test-integration:
-	@$(ROOT)/scripts/wait_healthy.sh
+	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; LAKEHOUSE_LIVE=1 $(PYTHON) -m pytest $(ROOT)/tests -m integration
 
 lint:
