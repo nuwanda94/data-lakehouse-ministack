@@ -71,6 +71,7 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Zone contracts + data dictionary | Done | [`configs/contracts/`](configs/contracts/) · [`docs/data-dictionary.md`](docs/data-dictionary.md) |
 | Full CI vs MiniStack | Done | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | Pre-commit + required checks | Done | [`.pre-commit-config.yaml`](.pre-commit-config.yaml) · [`docs/ci.md`](docs/ci.md) |
+| Late-arriving data | Done | [`docs/late-arriving.md`](docs/late-arriving.md) · `make reprocess` |
 | Glue / Athena / dbt | Later | Phase 3 |
 
 Live checklist: [`TODO.md`](TODO.md). Run log: [`PROGRESS.md`](PROGRESS.md).
@@ -140,6 +141,7 @@ make clean       # down + delete local terraform state
 | `make outputs` | `scripts/get_outputs.sh` |
 | `make seed` | eval outputs, then `python -m lakehouse seed` |
 | `make pipeline` | eval outputs, then `python -m lakehouse pipeline` |
+| `make reprocess` | rebuild Gold for `LOOKBACK_DAYS` (`docs/late-arriving.md`) |
 | `make query` | eval outputs, then `python -m lakehouse query` |
 | `make test` | `pytest tests -m "not integration"` |
 | `make test-integration` | live MiniStack Bronze → Silver → Gold |
@@ -202,6 +204,7 @@ Local equivalent of the hook gate: `make pre-commit` after `pre-commit install`.
 | `GOLD_BUCKET` | `lakehouse-local-gold` |
 | `PIPELINE_RUNS_TABLE` | `lakehouse-local-pipeline-runs` |
 | `GOLD_METRICS_TABLE` | `lakehouse-local-gold-metrics` |
+| `LOOKBACK_DAYS` | `2` |
 
 ## Package layout
 
@@ -225,6 +228,7 @@ scripts/             # wait_healthy.sh, get_outputs.sh, tf_env.sh
 docs/adr/            # architecture decision records
 docs/ci.md           # required status checks
 docs/data-dictionary.md
+docs/late-arriving.md
 tests/
 ```
 
