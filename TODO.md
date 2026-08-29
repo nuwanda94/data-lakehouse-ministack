@@ -21,7 +21,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Pipeline run metadata & status tracking
 - [x] chore: Lambda packaging & deployment via Terraform
 - [x] chore: Wire S3 event notifications or EventBridge
-- [ ] test: Integration tests for full Bronze → Silver → Gold
+- [x] test: Integration tests for full Bronze → Silver → Gold
 - [ ] docs: Document zone contracts & data dictionary
 
 ## Later Phases

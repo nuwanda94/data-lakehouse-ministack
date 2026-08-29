@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-29 18:06 IST
+- Completed: test: Integration tests for full Bronze → Silver → Gold
+- Next candidate: docs: Document zone contracts & data dictionary (P0)
+- Notes: Added `tests/test_medallion_integration.py` that chains ingest → silver → quality → gold against in-memory S3/DDB fakes (always in `make test`). Live MiniStack path is `@pytest.mark.integration`, skipped unless the endpoint is reachable or `LAKEHOUSE_LIVE=1`; `make test-integration` waits for health, injects Terraform outputs, and runs that marker. Next P0 is zone contracts / data dictionary under `configs/contracts/`.
+
 ## 2026-08-29 12:41 IST
 - Completed: chore: Wire S3 event notifications or EventBridge
 - Next candidate: test: Integration tests for full Bronze → Silver → Gold (P0)
