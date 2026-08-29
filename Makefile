@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold query runs outputs test test-integration ci lint pre-commit clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold sfn sfn-def query runs outputs test test-integration ci lint pre-commit clean
 
 help:
 	@printf '%s\n' \
@@ -28,18 +28,20 @@ help:
 	  '  make up        start MiniStack and wait until healthy' \
 	  '  make health    probe MiniStack + list buckets/tables' \
 	  '  make package   zip lakehouse + pydantic for Lambda deploy' \
-	  '  make infra     terraform apply buckets + DynamoDB + Lambdas' \
+	  '  make infra     terraform apply buckets + DynamoDB + Lambdas + SFN' \
 	  '  make outputs   print Terraform outputs as KEY=value env vars' \
 	  '  make seed      write synthetic events to bronze' \
 	  '  make pipeline  bronze -> silver -> gold (local runner)' \
 	  '  make ingest    drain Bronze SQS queue through the ingest handler' \
-	  '  make silver    cleanse Bronze → Silver (+ quarantine) via the Silver handler' \
+	  '  make silver    cleanse Bronze to Silver via the Silver handler' \
 	  '  make quality   run the Silver quality gate (fail or quarantine)' \
-	  '  make gold      aggregate Silver → Gold metrics via the Gold handler' \
+	  '  make gold      aggregate Silver to Gold metrics via the Gold handler' \
+	  '  make sfn       walk the Step Functions graph via zone handlers' \
+	  '  make sfn-def   print the medallion ASL definition' \
 	  '  make query     print gold object + metrics summary' \
 	  '  make runs      list pipeline run metadata from DynamoDB' \
 	  '  make test      unit + hermetic zone-path tests' \
-	  '  make test-integration  live MiniStack Bronze→Silver→Gold' \
+	  '  make test-integration  live MiniStack Bronze to Silver to Gold' \
 	  '  make lint      ruff check + format check' \
 	  '  make pre-commit  run .pre-commit-config.yaml hooks on the whole tree' \
 	  '  make ci        lint + unit + up + infra + seed + pipeline + integration' \
@@ -114,6 +116,13 @@ quality:
 gold:
 	@bash $(ROOT)/scripts/wait_healthy.sh
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse gold
+
+sfn:
+	@bash $(ROOT)/scripts/wait_healthy.sh
+	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse sfn
+
+sfn-def:
+	@$(PYTHON) -m lakehouse sfn-def
 
 query:
 	@bash $(ROOT)/scripts/wait_healthy.sh
