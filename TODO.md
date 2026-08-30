@@ -30,7 +30,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Dead-letter handling & reprocessing
 - [x] feat: Idempotency keys & exactly-once semantics
 - [x] feat: Late-arriving data handling
-- [ ] chore: Centralized configuration (SSM or config file)
+- [x] chore: Centralized configuration (SSM or config file)
 - [ ] test: Failure injection tests
 - [ ] docs: Runbook: how to reprocess a date / debug a failed run
 

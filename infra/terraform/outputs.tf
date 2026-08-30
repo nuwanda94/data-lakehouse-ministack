@@ -81,3 +81,7 @@ output "sfn_state_machine_name" {
 output "sfn_state_machine_arn" {
   value = aws_sfn_state_machine.medallion.arn
 }
+
+output "pipeline_ssm_parameter" {
+  value = aws_ssm_parameter.pipeline.name
+}

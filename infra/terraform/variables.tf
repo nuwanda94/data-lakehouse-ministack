@@ -67,3 +67,21 @@ variable "lambda_zip_path" {
   description = "Path to the packaged lakehouse Lambda zip. Empty uses ../../build/lambda/lakehouse.zip."
   default     = ""
 }
+
+variable "pipeline_ssm_parameter" {
+  type        = string
+  description = "SSM parameter name that stores configs/pipeline.json."
+  default     = "/lakehouse-local/pipeline"
+}
+
+variable "pipeline_config_path" {
+  type        = string
+  description = "Path to the checked-in pipeline config JSON published to SSM."
+  default     = ""
+}
+
+variable "ssm_enabled" {
+  type        = bool
+  description = "When true, Lambdas overlay Settings from the SSM parameter."
+  default     = false
+}
