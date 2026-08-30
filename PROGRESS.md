@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-30 19:10 IST
+- Completed: feat: Glue Data Catalog tables for Silver & Gold
+- Next candidate: feat: Athena workgroup + named queries (P1)
+- Notes: Silver `commerce_event_conformed` and Gold `daily_event_metrics` specs live in `lakehouse.catalog` (derived from zone contracts). Terraform `infra/terraform/glue.tf` is gated by `enable_glue=false` so MiniStack `make infra` stays reliable. `python -m lakehouse catalog` / `make catalog` describe tables and best-effort register them when Glue is available. See `docs/catalog.md`.
+
 ## 2026-08-30 18:04 IST
 - Completed: docs: Runbook: how to reprocess a date / debug a failed run
 - Next candidate: feat: Glue Data Catalog tables for Silver & Gold (P1)
