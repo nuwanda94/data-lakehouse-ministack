@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-30 21:10 IST
+- Completed: feat: Structured metrics (CloudWatch + custom)
+- Next candidate: feat: Schema evolution & contract testing (P1)
+- Notes: Catalog lives in `lakehouse.metrics` (RecordsProcessed, QualityFailures, PipelineLagSeconds, EstimatedBytes cost proxy). Zone handlers call `emit_run_metrics` after persisting the DynamoDB run. PutMetricData is gated by `FEATURE_EMIT_METRICS` / Terraform `emit_metrics` (default off so MiniStack stays reliable). `python -m lakehouse metrics` / `make metrics`. See `docs/metrics.md`.
+
 ## 2026-08-30 19:10 IST
 - Completed: feat: Glue Data Catalog tables for Silver & Gold
 - Next candidate: feat: Athena workgroup + named queries (P1)
