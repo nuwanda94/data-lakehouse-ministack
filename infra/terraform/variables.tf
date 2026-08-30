@@ -85,3 +85,24 @@ variable "ssm_enabled" {
   description = "When true, Lambdas overlay Settings from the SSM parameter."
   default     = false
 }
+
+variable "enable_glue" {
+  type        = bool
+  description = "Create Glue catalog database + Silver/Gold tables. Keep false on MiniStack."
+  default     = false
+}
+
+variable "glue_database" {
+  type    = string
+  default = "lakehouse_local"
+}
+
+variable "glue_silver_table" {
+  type    = string
+  default = "commerce_event_conformed"
+}
+
+variable "glue_gold_table" {
+  type    = string
+  default = "daily_event_metrics"
+}

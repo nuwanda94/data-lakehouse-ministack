@@ -85,3 +85,19 @@ output "sfn_state_machine_arn" {
 output "pipeline_ssm_parameter" {
   value = aws_ssm_parameter.pipeline.name
 }
+
+output "glue_database" {
+  value = var.glue_database
+}
+
+output "glue_silver_table" {
+  value = var.glue_silver_table
+}
+
+output "glue_gold_table" {
+  value = var.glue_gold_table
+}
+
+output "enable_glue" {
+  value = var.enable_glue
+}
