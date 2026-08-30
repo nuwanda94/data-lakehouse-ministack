@@ -26,6 +26,7 @@ htmlcov/
 **/*.tfstate.*
 **/*.tfvars
 !*.tfvars.example
+!infra/terraform/envs/*.tfvars
 .crash.*
 override.tf
 override.tf.json
