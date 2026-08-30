@@ -30,6 +30,10 @@ def main(argv: list[str] | None = None) -> int:
         "catalog",
         help="Describe (and best-effort register) Glue Silver/Gold tables",
     )
+    sub.add_parser(
+        "metrics",
+        help="Describe the CloudWatch metric catalog and in-process buffer",
+    )
     p_athena = sub.add_parser(
         "athena",
         help="Describe Athena workgroup + named queries (optional --name to start one)",
@@ -216,6 +220,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, indent=2, default=str))
         return 0 if result.get("status") != "failed" else 1
+
+    if args.command == "metrics":
+        from lakehouse.metrics import describe_metrics
+
+        result = describe_metrics()
+        print(json.dumps(result, indent=2))
+        return 0
 
     if args.command == "catalog":
         from lakehouse.catalog import register_catalog
