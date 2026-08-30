@@ -11,6 +11,7 @@ PUBLIC_MODULES = [
     "lakehouse.models",
     "lakehouse.contracts",
     "lakehouse.catalog",
+    "lakehouse.athena",
     "lakehouse.cli",
     "lakehouse.seed",
     "lakehouse.seed.generate",

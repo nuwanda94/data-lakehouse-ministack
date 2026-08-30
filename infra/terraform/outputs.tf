@@ -101,3 +101,15 @@ output "glue_gold_table" {
 output "enable_glue" {
   value = var.enable_glue
 }
+
+output "enable_athena" {
+  value = var.enable_athena
+}
+
+output "athena_workgroup" {
+  value = var.athena_workgroup
+}
+
+output "athena_result_location" {
+  value = "s3://${var.gold_bucket}/athena-results/"
+}

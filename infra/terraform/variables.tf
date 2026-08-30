@@ -106,3 +106,14 @@ variable "glue_gold_table" {
   type    = string
   default = "daily_event_metrics"
 }
+
+variable "enable_athena" {
+  type        = bool
+  description = "Create Athena workgroup + named queries. Keep false on MiniStack."
+  default     = false
+}
+
+variable "athena_workgroup" {
+  type    = string
+  default = "lakehouse-local"
+}

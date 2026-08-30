@@ -8,7 +8,7 @@
     "hive": ["metric", "dt"]
   },
   "producer": "lakehouse.gold.handler",
-  "consumer": "lakehouse.ops.query / future Athena",
+  "consumer": "lakehouse.ops.query / lakehouse.athena named queries",
   "description": "Daily grain aggregates by event_type. One S3 object per (event_type, day) plus a matching DynamoDB row.",
   "fields": [
     {"name": "dt", "type": "date", "required": true, "description": "Event date (YYYY-MM-DD) from Silver event_ts."},
