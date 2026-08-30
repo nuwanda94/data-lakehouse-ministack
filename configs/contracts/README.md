@@ -1,8 +1,9 @@
 # Zone contracts
 
 Machine-readable contracts for Bronze, Silver, Gold, the quality gate, and
-pipeline-run metadata. Human-readable companion:
-[`docs/data-dictionary.md`](../../docs/data-dictionary.md).
+pipeline-run metadata. Human-readable companions:
+[`docs/data-dictionary.md`](../../docs/data-dictionary.md) (fields) and
+[`docs/analytical-model.md`](../../docs/analytical-model.md) (grain and KPIs).
 
 | File | Zone / surface |
 | --- | --- |

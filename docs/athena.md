@@ -52,3 +52,5 @@ terraform apply -var='enable_glue=true' -var='enable_athena=true' -var='aws_endp
 
 Athena needs the Glue tables from `make catalog` / `enable_glue=true` plus
 partition projection ([`docs/partitions.md`](partitions.md)) for cheap partition pruning without `MSCK REPAIR TABLE`.
+
+Which table answers which KPI: [`docs/analytical-model.md`](analytical-model.md).
