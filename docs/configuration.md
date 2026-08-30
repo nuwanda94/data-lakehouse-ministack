@@ -18,7 +18,7 @@ Infrastructure names (`BRONZE_BUCKET`, queue URLs, table names) stay env-driven 
 ## Keys
 
 | Setting | Env | File path | Default |
-| --- | --- | --- | --- |
+| --- | --- | --- |
 | Lookback window | `LOOKBACK_DAYS` | `lookback_days` | `2` |
 | Quality on-fail | `QUALITY_ON_FAIL` | `quality.on_fail` | `fail` (`quarantine` also valid) |
 | Quality max fail ratio | `QUALITY_MAX_FAIL_RATIO` | `quality.max_fail_ratio` | `0.0` |
@@ -27,7 +27,7 @@ Infrastructure names (`BRONZE_BUCKET`, queue URLs, table names) stay env-driven 
 | Silver prefix | `SILVER_PREFIX` | `partitions.silver_prefix` | `events/` |
 | Gold prefix | `GOLD_PREFIX` | `partitions.gold_prefix` | `metrics/` |
 | Feature: Step Functions graph | `FEATURE_SFN` | `features.sfn` | `true` |
-| Feature: extra custom metrics | `FEATURE_EMIT_METRICS` | `features.emit_metrics` | `false` |
+| Feature: extra custom metrics | `FEATURE_EMIT_METRICS` | `features.emit_metrics` | `false` (see [`docs/metrics.md`](metrics.md)) |
 | Feature: load SSM overlay | `SSM_ENABLED` / `FEATURE_SSM` | `features.ssm` | `false` |
 | SSM parameter name | `CONFIG_SSM_PARAMETER` | `ssm.parameter` | `/lakehouse-local/pipeline` |
 | Config file path | `LAKEHOUSE_CONFIG` | — | `configs/pipeline.json` |
