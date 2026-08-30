@@ -57,4 +57,4 @@ terraform apply -var='enable_glue=true' -var='aws_endpoint_url='
 4. Keep `docs/data-dictionary.md` in sync.
 
 Athena workgroup + named queries: [`docs/athena.md`](athena.md).
-Partition projection (`projection.*` table parameters) is the next Phase 3 chore.
+Partition projection (`projection.*` table parameters): [`docs/partitions.md`](partitions.md).
