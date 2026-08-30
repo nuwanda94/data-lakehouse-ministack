@@ -22,7 +22,7 @@ provider "aws" {
       lambda   = var.aws_endpoint_url
       logs     = var.aws_endpoint_url
       ssm      = var.aws_endpoint_url
-      states   = var.aws_endpoint_url
+      sfn      = var.aws_endpoint_url
       glue     = var.aws_endpoint_url
       athena   = var.aws_endpoint_url
     }
