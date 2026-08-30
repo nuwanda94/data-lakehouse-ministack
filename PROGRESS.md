@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-30 23:00 IST
+- Completed: feat: Schema evolution & contract testing
+- Next candidate: feat: Multi-environment support (local / real AWS) (P1)
+- Notes: `lakehouse.contracts` now lints contract JSON, checks producers (CommerceEvent, seed enums, quality checks, PipelineRun, Gold measures) against `configs/contracts/`, and classifies diffs via `compare_contracts`. CLI/`make contracts` + `tests/test_schema_evolution.py` run in the unit CI job. See `docs/contracts.md`. Remaining Phase 4 P1: multi-env, cost notes, leftover ADRs.
+
 ## 2026-08-30 22:00 IST
 - Completed: docs: Analytical data model documentation
 - Next candidate: feat: Schema evolution & contract testing (P1)
