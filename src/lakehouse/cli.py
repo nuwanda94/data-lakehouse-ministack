@@ -31,6 +31,10 @@ def main(argv: list[str] | None = None) -> int:
         help="Describe (and best-effort register) Glue Silver/Gold tables",
     )
     sub.add_parser(
+        "partitions",
+        help="Describe Athena partition projection + discover Hive keys on S3",
+    )
+    sub.add_parser(
         "metrics",
         help="Describe the CloudWatch metric catalog and in-process buffer",
     )
@@ -233,6 +237,13 @@ def main(argv: list[str] | None = None) -> int:
 
         result = register_catalog()
         print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "partitions":
+        from lakehouse.partitions import describe_partitions
+
+        result = describe_partitions()
+        print(json.dumps(result, indent=2, default=str))
         return 0
 
     if args.command == "athena":
