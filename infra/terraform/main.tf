@@ -1,16 +1,16 @@
 resource "aws_s3_bucket" "bronze" {
   bucket        = var.bronze_bucket
-  force_destroy = true
+  force_destroy = var.force_destroy
 }
 
 resource "aws_s3_bucket" "silver" {
   bucket        = var.silver_bucket
-  force_destroy = true
+  force_destroy = var.force_destroy
 }
 
 resource "aws_s3_bucket" "gold" {
   bucket        = var.gold_bucket
-  force_destroy = true
+  force_destroy = var.force_destroy
 }
 
 resource "aws_dynamodb_table" "pipeline_runs" {

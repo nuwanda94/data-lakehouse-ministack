@@ -1,7 +1,44 @@
+variable "environment" {
+  type        = string
+  description = "Deployment profile: local (MiniStack) or aws (real account)."
+  default     = "local"
+
+  validation {
+    condition     = contains(["local", "aws"], var.environment)
+    error_message = "environment must be \"local\" or \"aws\"."
+  }
+}
+
 variable "aws_endpoint_url" {
   type        = string
   description = "MiniStack or AWS endpoint. Empty string targets real AWS."
   default     = "http://localhost:4566"
+}
+
+variable "use_static_credentials" {
+  type        = bool
+  description = "When true, use dummy access_key/secret_key (MiniStack). When false, use the default AWS credential chain."
+  default     = true
+}
+
+variable "aws_access_key" {
+  type        = string
+  description = "Static access key used only when use_static_credentials is true."
+  default     = "test"
+  sensitive   = true
+}
+
+variable "aws_secret_key" {
+  type        = string
+  description = "Static secret key used only when use_static_credentials is true."
+  default     = "test"
+  sensitive   = true
+}
+
+variable "force_destroy" {
+  type        = bool
+  description = "Allow terraform destroy to empty S3 buckets. Keep true on MiniStack, false on real AWS."
+  default     = true
 }
 
 variable "aws_region" {
