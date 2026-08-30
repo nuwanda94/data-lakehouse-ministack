@@ -82,6 +82,8 @@ def main(argv: list[str] | None = None) -> int:
     p_settings = sub.add_parser("settings", help="Print resolved settings as JSON")
     p_settings.add_argument("--no-dotenv", action="store_true")
 
+    sub.add_parser("contracts", help="Validate zone contracts against in-repo producers")
+
     p_outputs = sub.add_parser("outputs", help="Emit Terraform outputs as env exports")
     p_outputs.add_argument("--tf-dir", default="infra/terraform")
     p_outputs.add_argument("--export", action="store_true")
@@ -131,6 +133,13 @@ def main(argv: list[str] | None = None) -> int:
         else:
             sys.stdout.write(format_exports(values, export=args.export))
         return 0
+
+    if args.command == "contracts":
+        from lakehouse.contract_check import check_all, errors_only, report_issues
+
+        issues = check_all()
+        print(json.dumps(report_issues(issues), indent=2))
+        return 1 if errors_only(issues) else 0
 
     if args.command == "health":
         from lakehouse.ops.health import check_health
