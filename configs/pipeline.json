@@ -1,0 +1,21 @@
+{
+  "lookback_days": 2,
+  "quality": {
+    "on_fail": "fail",
+    "max_fail_ratio": 0.0
+  },
+  "partitions": {
+    "strategy": "hive",
+    "bronze_prefix": "events/",
+    "silver_prefix": "events/",
+    "gold_prefix": "metrics/"
+  },
+  "features": {
+    "sfn": true,
+    "emit_metrics": false,
+    "ssm": false
+  },
+  "ssm": {
+    "parameter": "/lakehouse-local/pipeline"
+  }
+}
