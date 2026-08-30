@@ -26,6 +26,10 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("quality", help="Run Silver quality gate")
     sub.add_parser("gold", help="Aggregate Silver → Gold metrics")
     sub.add_parser("query", help="Print Gold summary")
+    sub.add_parser(
+        "catalog",
+        help="Describe (and best-effort register) Glue Silver/Gold tables",
+    )
     sub.add_parser("runs", help="List pipeline runs from DynamoDB")
     sub.add_parser(
         "sfn",
@@ -203,6 +207,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, indent=2, default=str))
         return 0 if result.get("status") != "failed" else 1
+
+    if args.command == "catalog":
+        from lakehouse.catalog import register_catalog
+
+        result = register_catalog()
+        print(json.dumps(result, indent=2))
+        return 0
 
     if args.command == "query":
         from lakehouse.ops.query import query_gold
