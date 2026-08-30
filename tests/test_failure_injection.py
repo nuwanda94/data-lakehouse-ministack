@@ -36,6 +36,7 @@ def _settings() -> Settings:
         gold_metrics_table="metrics",
         bronze_events_queue="bronze-events",
         bronze_events_queue_url="",
+        lookback_days=3650,
     )
 
 
@@ -105,9 +106,6 @@ class FakeDDB:
         return {}
 
 
-# --- Lambda failures -------------------------------------------------------
-
-
 def test_sfn_silver_exception_does_not_invoke_quality_or_gold() -> None:
     calls: list[str] = []
 
@@ -162,9 +160,6 @@ def test_sfn_handler_status_failed_is_terminal() -> None:
     assert result["terminal"] == "Failed"
     assert result["error"] == "all objects missing"
     assert "TransformSilver" not in result["history"]
-
-
-# --- Poison messages -------------------------------------------------------
 
 
 def test_poison_sqs_body_is_dropped_not_parsed_as_object() -> None:
@@ -231,27 +226,21 @@ def test_ingest_marks_missing_object_as_failed_run() -> None:
     assert result["missing"]
 
 
-# --- Schema drift ----------------------------------------------------------
-
-
 @pytest.mark.parametrize(
     "payload,reason",
     [
         ({}, "empty_record"),
         ({"event_id": "", "event_type": "purchase"}, "missing_event_id"),
-        (
-            {
-                **_ok_event(event_type="subscription"),
-            },
-            "unknown_event_type",
-        ),
+        ({**_ok_event(event_type="subscription")}, "unknown_event_type"),
         ({**_ok_event(), "quantity": "two"}, "non_numeric_measures"),
         ({**_ok_event(), "amount_usd": "free"}, "non_numeric_measures"),
         ({**_ok_event(), "event_ts": "not-a-timestamp"}, "schema_invalid"),
         ({**_ok_event(), "quantity": -3}, "non_positive_quantity"),
     ],
 )
-def test_schema_drift_is_quarantined_with_stable_reason(payload: dict[str, Any], reason: str) -> None:
+def test_schema_drift_is_quarantined_with_stable_reason(
+    payload: dict[str, Any], reason: str
+) -> None:
     with pytest.raises(ValueError, match=reason):
         parse_bronze_record(payload)
     batch = cleanse_to_silver([payload])
@@ -290,6 +279,7 @@ def test_silver_handler_quarantines_drifted_bronze_json() -> None:
     assert result["status"] == "succeeded"
     assert result["valid"] == 1
     assert result["quarantined"] == 2
+    assert result["late"] == 0
     assert len(result["quarantine_written"]) == 2
     assert any("checkout_v2" not in k for k in result["silver_written"])
 
