@@ -74,11 +74,14 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Late-arriving data | Done | [`docs/late-arriving.md`](docs/late-arriving.md) · `make reprocess` |
 | Failure injection tests | Done | [`tests/test_failure_injection.py`](tests/test_failure_injection.py) · [`docs/failure-injection.md`](docs/failure-injection.md) |
 | Operator runbook | Done | [`docs/runbook.md`](docs/runbook.md) |
-| Glue / Athena / dbt | Later | Phase 3 |
+| Glue Catalog + Athena named queries | Done | [`docs/catalog.md`](docs/catalog.md) · [`docs/athena.md`](docs/athena.md) |
+| Analytical data model | Done | [`docs/analytical-model.md`](docs/analytical-model.md) |
+| dbt / query UI | Later | Phase 3 P2 |
 
 Live checklist: [`TODO.md`](TODO.md). Run log: [`PROGRESS.md`](PROGRESS.md).
 ADR index: [`docs/adr/README.md`](docs/adr/README.md).
 Zone contracts: [`configs/contracts/`](configs/contracts/).
+Analytical model: [`docs/analytical-model.md`](docs/analytical-model.md).
 CI / branch protection: [`docs/ci.md`](docs/ci.md).
 Ops runbook: [`docs/runbook.md`](docs/runbook.md).
 
@@ -231,6 +234,10 @@ scripts/             # wait_healthy.sh, get_outputs.sh, tf_env.sh
 docs/adr/            # architecture decision records
 docs/ci.md           # required status checks
 docs/data-dictionary.md
+docs/analytical-model.md
+docs/catalog.md
+docs/athena.md
+docs/partitions.md
 docs/late-arriving.md
 docs/failure-injection.md
 docs/runbook.md      # reprocess a date / debug a failed run
@@ -245,6 +252,7 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | --- | --- |
 | Medallion modeling | Bronze / Silver / Gold buckets and transforms |
 | Zone contracts | `configs/contracts/` + `docs/data-dictionary.md` |
+| Analytical model | [`docs/analytical-model.md`](docs/analytical-model.md) — Gold grain + KPIs |
 | Local-first AWS | MiniStack + endpoint-aware boto3 |
 | IaC | Terraform providers pointed at `:4566` |
 | Config discipline | `.env` vs process env vs Terraform outputs |
@@ -252,7 +260,7 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | Data quality | Named quality gate (`lakehouse.quality.gate`) |
 | Event-driven ingest | S3 → SQS → ingest Lambda |
 | Orchestration | Python runner now; Step Functions in Phase 2 ([ADR-003](docs/adr/003-local-orchestration-vs-step-functions.md)) |
-| Analytics surface | Planned Glue Catalog + Athena + optional dbt |
+| Analytics surface | Glue + Athena named queries; dbt still Phase 3 P2 |
 | Platform hygiene | pytest, pre-commit, GitHub Actions vs MiniStack |
 
 ## Troubleshooting
