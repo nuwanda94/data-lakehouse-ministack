@@ -79,6 +79,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Window end date or ISO timestamp (default: now UTC)",
     )
 
+    sub.add_parser(
+        "env",
+        help="Print the resolved local|aws environment profile as JSON",
+    )
+
     p_settings = sub.add_parser("settings", help="Print resolved settings as JSON")
     p_settings.add_argument("--no-dotenv", action="store_true")
 
@@ -100,6 +105,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.command is None:
         parser.error("the following arguments are required: command")
+
+    if args.command == "env":
+        from lakehouse.environments import describe_environment
+
+        print(json.dumps(describe_environment(), indent=2))
+        return 0
 
     if args.command == "settings":
         from lakehouse.config import load_settings
