@@ -61,7 +61,7 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Terraform core (S3 + DynamoDB) | Done | `make infra` against `:4566` |
 | `.env` + Terraform output injection | Done | `scripts/get_outputs.sh`, `lakehouse outputs` |
 | Seed / pipeline / query CLI | Done | Local Python runner |
-| README + runbook | Done | This file |
+| README + runbook | Done | This file + [`docs/runbook.md`](docs/runbook.md) |
 | ADR-003 (runner vs Step Functions) | Done | [docs/adr/003](docs/adr/003-local-orchestration-vs-step-functions.md) |
 | Unit tests for seed + transform | Done | `tests/test_seed.py`, `tests/test_transforms.py` |
 | Event-driven Bronze Lambda | Done | S3 → SQS → ingest handler |
@@ -73,12 +73,14 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Pre-commit + required checks | Done | [`.pre-commit-config.yaml`](.pre-commit-config.yaml) · [`docs/ci.md`](docs/ci.md) |
 | Late-arriving data | Done | [`docs/late-arriving.md`](docs/late-arriving.md) · `make reprocess` |
 | Failure injection tests | Done | [`tests/test_failure_injection.py`](tests/test_failure_injection.py) · [`docs/failure-injection.md`](docs/failure-injection.md) |
+| Operator runbook | Done | [`docs/runbook.md`](docs/runbook.md) |
 | Glue / Athena / dbt | Later | Phase 3 |
 
 Live checklist: [`TODO.md`](TODO.md). Run log: [`PROGRESS.md`](PROGRESS.md).
 ADR index: [`docs/adr/README.md`](docs/adr/README.md).
 Zone contracts: [`configs/contracts/`](configs/contracts/).
 CI / branch protection: [`docs/ci.md`](docs/ci.md).
+Ops runbook: [`docs/runbook.md`](docs/runbook.md).
 
 ## Prerequisites
 
@@ -142,7 +144,7 @@ make clean       # down + delete local terraform state
 | `make outputs` | `scripts/get_outputs.sh` |
 | `make seed` | eval outputs, then `python -m lakehouse seed` |
 | `make pipeline` | eval outputs, then `python -m lakehouse pipeline` |
-| `make reprocess` | rebuild Gold for `LOOKBACK_DAYS` (`docs/late-arriving.md`) |
+| `make reprocess` | rebuild Gold for `LOOKBACK_DAYS` (`docs/late-arriving.md`, `docs/runbook.md`) |
 | `make query` | eval outputs, then `python -m lakehouse query` |
 | `make test` | `pytest tests -m "not integration"` |
 | `make test-integration` | live MiniStack Bronze → Silver → Gold |
@@ -231,6 +233,7 @@ docs/ci.md           # required status checks
 docs/data-dictionary.md
 docs/late-arriving.md
 docs/failure-injection.md
+docs/runbook.md      # reprocess a date / debug a failed run
 tests/
 ```
 
@@ -245,7 +248,7 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | Local-first AWS | MiniStack + endpoint-aware boto3 |
 | IaC | Terraform providers pointed at `:4566` |
 | Config discipline | `.env` vs process env vs Terraform outputs |
-| Operability | Makefile health checks, CLI JSON, run metadata table |
+| Operability | Makefile health checks, CLI JSON, run metadata table, [`docs/runbook.md`](docs/runbook.md) |
 | Data quality | Named quality gate (`lakehouse.quality.gate`) |
 | Event-driven ingest | S3 → SQS → ingest Lambda |
 | Orchestration | Python runner now; Step Functions in Phase 2 ([ADR-003](docs/adr/003-local-orchestration-vs-step-functions.md)) |
@@ -263,6 +266,9 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | Tests pass but pipeline fails | MiniStack / Terraform not applied | Unit tests are offline; the live loop needs `up` + `infra` |
 | CI ministack job fails at `make up` | Docker image pull or port bind | Check the "MiniStack logs on failure" step |
 | `make pre-commit` missing module | Dev extras not installed | `make install` (includes `pre-commit`) |
+| Pipeline `status=failed` / quality_failed | Bad Bronze, gate, or late Gold | Follow [`docs/runbook.md`](docs/runbook.md) |
+| Gold under-counts a day | Late-arriving Silver rows | `LOOKBACK_DAYS=0 AS_OF=YYYY-MM-DD make reprocess` |
+| Poison events stuck | DLQ after `maxReceiveCount` | `make dlq` then `make redrive` then `make ingest` |
 
 ## License
 
