@@ -10,6 +10,7 @@ PUBLIC_MODULES = [
     "lakehouse.aws",
     "lakehouse.models",
     "lakehouse.contracts",
+    "lakehouse.contract_check",
     "lakehouse.catalog",
     "lakehouse.partitions",
     "lakehouse.athena",
