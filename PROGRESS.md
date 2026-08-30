@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-30 18:04 IST
+- Completed: docs: Runbook: how to reprocess a date / debug a failed run
+- Next candidate: feat: Glue Data Catalog tables for Silver & Gold (P1)
+- Notes: Added `docs/runbook.md` covering detect → classify (DLQ / quality / SFN Catch / late Gold) → `make reprocess` for a window or a single `dt`. README troubleshooting now points at the runbook. Phase 2 checklist is complete.
+
 ## 2026-08-30 12:50 IST
 - Completed: test: Failure injection tests
 - Next candidate: docs: Runbook: how to reprocess a date / debug a failed run (P1)

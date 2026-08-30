@@ -32,7 +32,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Late-arriving data handling
 - [x] chore: Centralized configuration (SSM or config file)
 - [x] test: Failure injection tests
-- [ ] docs: Runbook: how to reprocess a date / debug a failed run
+- [x] docs: Runbook: how to reprocess a date / debug a failed run
 
 ## Phase 3 — Catalog, Query & Analytics (P1/P2)
 
