@@ -72,6 +72,7 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Full CI vs MiniStack | Done | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | Pre-commit + required checks | Done | [`.pre-commit-config.yaml`](.pre-commit-config.yaml) · [`docs/ci.md`](docs/ci.md) |
 | Late-arriving data | Done | [`docs/late-arriving.md`](docs/late-arriving.md) · `make reprocess` |
+| Failure injection tests | Done | [`tests/test_failure_injection.py`](tests/test_failure_injection.py) · [`docs/failure-injection.md`](docs/failure-injection.md) |
 | Glue / Athena / dbt | Later | Phase 3 |
 
 Live checklist: [`TODO.md`](TODO.md). Run log: [`PROGRESS.md`](PROGRESS.md).
@@ -229,6 +230,7 @@ docs/adr/            # architecture decision records
 docs/ci.md           # required status checks
 docs/data-dictionary.md
 docs/late-arriving.md
+docs/failure-injection.md
 tests/
 ```
 
