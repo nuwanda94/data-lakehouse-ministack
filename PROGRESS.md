@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-30 22:00 IST
+- Completed: docs: Analytical data model documentation
+- Next candidate: feat: Schema evolution & contract testing (P1)
+- Notes: Added `docs/analytical-model.md` — grain, star sketch, KPI definitions (Gold vs Silver), join paths, named-query mapping, late-data / idempotency caveats. Linked from README, data dictionary, catalog, and contracts README. Next P1 feat is schema-evolution CI against `configs/contracts/`.
+
 ## 2026-08-30 21:20 IST
 - Completed: chore: Partition projection / partition management
 - Next candidate: docs: Analytical data model documentation (P1)

@@ -41,7 +41,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [ ] feat: dbt project on top of Athena/Glue
 - [ ] feat: Simple query UI or notebook
 - [x] chore: Partition projection / partition management
-- [ ] docs: Analytical data model documentation
+- [x] docs: Analytical data model documentation
 
 ## Phase 4 — Observability & Platform (remaining P0/P1)
 
