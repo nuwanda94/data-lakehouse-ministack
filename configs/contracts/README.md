@@ -14,6 +14,8 @@ pipeline-run metadata. Human-readable companions:
 | [`pipeline_run.json`](pipeline_run.json) | DynamoDB pipeline-runs item |
 
 These files are the source of truth for field names and partition keys.
-`lakehouse.models.CommerceEvent` and `tests/test_contracts.py` must stay
-aligned with them. Schema-evolution CI (Phase 4) should fail a PR that
-changes a producer without updating the matching contract.
+`lakehouse.models.CommerceEvent`, `tests/test_contracts.py`, and
+`tests/test_schema_evolution.py` must stay aligned with them.
+`python -m lakehouse contracts` / `make contracts` fails a PR that
+changes a producer without updating the matching contract. Compatibility
+rules live in [`docs/contracts.md`](../../docs/contracts.md).

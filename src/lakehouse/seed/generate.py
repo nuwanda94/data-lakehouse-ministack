@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from lakehouse.models import CommerceEvent
 
 _EVENT_TYPES = ("page_view", "add_to_cart", "purchase", "refund")
+EVENT_TYPES = _EVENT_TYPES
 _SKUS = ("SKU-100", "SKU-200", "SKU-300", "SKU-400")
 _COUNTRIES = ("US", "DE", "IN", "BR", "JP")
 
