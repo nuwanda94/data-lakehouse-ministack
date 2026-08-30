@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-30 12:50 IST
+- Completed: test: Failure injection tests
+- Next candidate: docs: Runbook: how to reprocess a date / debug a failed run (P1)
+- Notes: Hermetic coverage in `tests/test_failure_injection.py` for Lambda exceptions / failed zone status (SFN Catch), poison SQS bodies, missing Bronze objects, and schema drift (unknown types, bad measures, invalid timestamps, extra columns). See `docs/failure-injection.md`.
+
 ## 2026-08-30 09:11 IST
 - Completed: chore: Centralized configuration (SSM or config file)
 - Next candidate: test: Failure injection tests (P1)
