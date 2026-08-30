@@ -18,9 +18,16 @@ resource "aws_glue_catalog_table" "silver" {
   description   = "Cleansed CommerceEvent plus _late flag. Partitioned by event_type and dt."
 
   parameters = {
-    classification = "json"
-    EXTERNAL       = "TRUE"
-    zone           = "silver"
+    classification                 = "json"
+    EXTERNAL                       = "TRUE"
+    zone                           = "silver"
+    "projection.enabled"           = "true"
+    "projection.event_type.type"   = "enum"
+    "projection.event_type.values" = "page_view,add_to_cart,purchase,refund"
+    "projection.dt.type"           = "date"
+    "projection.dt.format"         = "yyyy-MM-dd"
+    "projection.dt.range"          = "2024-01-01,NOW"
+    "storage.location.template"    = "s3://${var.silver_bucket}/events/event_type=$${event_type}/dt=$${dt}"
   }
 
   storage_descriptor {
@@ -96,9 +103,16 @@ resource "aws_glue_catalog_table" "gold" {
   description   = "Daily grain aggregates by event_type. Partitioned by metric and dt."
 
   parameters = {
-    classification = "json"
-    EXTERNAL       = "TRUE"
-    zone           = "gold"
+    classification              = "json"
+    EXTERNAL                    = "TRUE"
+    zone                        = "gold"
+    "projection.enabled"        = "true"
+    "projection.metric.type"    = "enum"
+    "projection.metric.values"  = "page_view,add_to_cart,purchase,refund"
+    "projection.dt.type"        = "date"
+    "projection.dt.format"      = "yyyy-MM-dd"
+    "projection.dt.range"       = "2024-01-01,NOW"
+    "storage.location.template" = "s3://${var.gold_bucket}/metrics/metric=$${metric}/dt=$${dt}"
   }
 
   storage_descriptor {
