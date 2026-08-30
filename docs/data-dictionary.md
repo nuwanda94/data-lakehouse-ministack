@@ -1,7 +1,9 @@
 # Data dictionary — medallion zones
 
-This document is the analyst-facing companion to
-[`configs/contracts/`](../configs/contracts/). Field names, types, and
+This document is the field-level companion to
+[`configs/contracts/`](../configs/contracts/). Grain, KPIs, and how to
+query Gold vs Silver are in
+[`analytical-model.md`](analytical-model.md). Field names, types, and
 partition keys must match those JSON files and `lakehouse.models`.
 
 ## Zones at a glance
@@ -108,3 +110,4 @@ Report object fields: `run_id`, `passed`, `action`, `rows_scanned`,
 2. Update `CommerceEvent` / transforms / handlers to match.
 3. Extend `tests/test_contracts.py` if a new required field is added.
 4. Note the change in `PROGRESS.md` and, for breaking changes, an ADR.
+5. If grain or KPI meaning changed, update [`analytical-model.md`](analytical-model.md).
