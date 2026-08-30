@@ -36,7 +36,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 
 ## Phase 3 — Catalog, Query & Analytics (P1/P2)
 
-- [ ] feat: Glue Data Catalog tables for Silver & Gold
+- [x] feat: Glue Data Catalog tables for Silver & Gold
 - [ ] feat: Athena workgroup + named queries
 - [ ] feat: dbt project on top of Athena/Glue
 - [ ] feat: Simple query UI or notebook
