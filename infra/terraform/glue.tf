@@ -47,12 +47,12 @@ resource "aws_glue_catalog_table" "silver" {
       comment = "Timezone-aware event time."
     }
     columns {
-      name    = "user_id"
-      type    = "string"
+      name = "user_id"
+      type = "string"
     }
     columns {
-      name    = "sku"
-      type    = "string"
+      name = "sku"
+      type = "string"
     }
     columns {
       name    = "quantity"
@@ -65,8 +65,8 @@ resource "aws_glue_catalog_table" "silver" {
       comment = "Gross amount in USD; Silver requires >= 0."
     }
     columns {
-      name    = "country"
-      type    = "string"
+      name = "country"
+      type = "string"
     }
     columns {
       name    = "_late"
