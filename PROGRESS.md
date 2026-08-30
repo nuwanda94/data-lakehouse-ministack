@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-30 09:11 IST
+- Completed: chore: Centralized configuration (SSM or config file)
+- Next candidate: test: Failure injection tests (P1)
+- Notes: Behavior knobs live in `configs/pipeline.json` (quality on-fail / max fail ratio, lookback, partition prefixes, feature flags). Optional SSM overlay at `/lakehouse-local/pipeline` is published by Terraform (`infra/terraform/ssm.tf`) and applied when `SSM_ENABLED=true`. Env still wins. Quality handler now reads thresholds from Settings. See `docs/configuration.md`.
+
 ## 2026-08-30 00:10 IST
 - Completed: feat: Late-arriving data handling
 - Next candidate: chore: Centralized configuration (SSM or config file) (P1)
