@@ -1,0 +1,20 @@
+# MiniStack / local workstation. Safe defaults; buckets are force-destroyed.
+environment              = "local"
+aws_endpoint_url         = "http://localhost:4566"
+aws_region               = "us-east-1"
+use_static_credentials   = true
+force_destroy            = true
+enable_glue              = false
+enable_athena            = false
+ssm_enabled              = false
+project                  = "lakehouse-local"
+bronze_bucket            = "lakehouse-local-bronze"
+silver_bucket            = "lakehouse-local-silver"
+gold_bucket              = "lakehouse-local-gold"
+pipeline_runs_table      = "lakehouse-local-pipeline-runs"
+gold_metrics_table       = "lakehouse-local-gold-metrics"
+bronze_events_queue      = "lakehouse-local-bronze-events"
+bronze_events_dlq        = "lakehouse-local-bronze-events-dlq"
+pipeline_ssm_parameter   = "/lakehouse-local/pipeline"
+glue_database            = "lakehouse_local"
+athena_workgroup         = "lakehouse-local"
