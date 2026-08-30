@@ -56,5 +56,5 @@ terraform apply -var='enable_glue=true' -var='aws_endpoint_url='
 3. Extend `tests/test_catalog.py` if a new required field is added.
 4. Keep `docs/data-dictionary.md` in sync.
 
-Partition projection (Athena workgroup + `projection.*` table parameters) is
-the next Phase 3 chore after named Athena queries.
+Athena workgroup + named queries: [`docs/athena.md`](athena.md).
+Partition projection (`projection.*` table parameters) is the next Phase 3 chore.

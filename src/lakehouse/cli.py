@@ -30,6 +30,15 @@ def main(argv: list[str] | None = None) -> int:
         "catalog",
         help="Describe (and best-effort register) Glue Silver/Gold tables",
     )
+    p_athena = sub.add_parser(
+        "athena",
+        help="Describe Athena workgroup + named queries (optional --name to start one)",
+    )
+    p_athena.add_argument(
+        "--name",
+        default=None,
+        help="Named query to start (gold_daily_totals, gold_purchase_revenue, ...)",
+    )
     sub.add_parser("runs", help="List pipeline runs from DynamoDB")
     sub.add_parser(
         "sfn",
@@ -212,6 +221,16 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.catalog import register_catalog
 
         result = register_catalog()
+        print(json.dumps(result, indent=2))
+        return 0
+
+    if args.command == "athena":
+        from lakehouse.athena import register_athena, run_named_query
+
+        if args.name:
+            result = run_named_query(args.name)
+        else:
+            result = register_athena()
         print(json.dumps(result, indent=2))
         return 0
 
