@@ -14,6 +14,7 @@ from typing import Any
 
 from lakehouse.config import Settings, load_settings
 from lakehouse.contracts import load_contract
+from lakehouse.partitions import gold_projection, silver_projection
 
 GLUE_DATABASE = "lakehouse_local"
 SILVER_TABLE = "commerce_event_conformed"
@@ -49,6 +50,7 @@ class CatalogTable:
     partition_keys: tuple[CatalogColumn, ...]
     description: str
     comments: dict[str, str] = field(default_factory=dict)
+    projection: dict[str, str] = field(default_factory=dict)
 
     def as_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -151,6 +153,7 @@ def silver_table(settings: Settings | None = None) -> CatalogTable:
         partition_keys=tuple(part_cols),
         description=str(spec.get("description") or "Silver conformed commerce events"),
         comments={col.name: col.comment for col in (*data_cols, *part_cols) if col.comment},
+        projection=silver_projection(resolved),
     )
 
 
@@ -176,6 +179,7 @@ def gold_table(settings: Settings | None = None) -> CatalogTable:
         partition_keys=tuple(part_cols),
         description=str(spec.get("description") or "Gold daily event metrics"),
         comments={col.name: col.comment for col in (*data_cols, *part_cols) if col.comment},
+        projection=gold_projection(resolved),
     )
 
 
@@ -207,6 +211,7 @@ def _put_table(glue: Any, table: CatalogTable) -> str:
             "classification": table.classification,
             "EXTERNAL": "TRUE",
             "zone": table.zone,
+            **table.projection,
         },
         "StorageDescriptor": table.glue_storage_descriptor(),
         "PartitionKeys": [
