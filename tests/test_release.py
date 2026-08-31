@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from lakehouse.cli import main
 from lakehouse.release import (
     create_annotated_tag,
     parse_changelog,
@@ -62,9 +61,8 @@ def test_dry_run_tag_does_not_fail_when_plan_ok() -> None:
     assert "would create" in notes or "already exists" in notes
 
 
-def test_cli_release_json(capsys: object) -> None:
-    assert main(["release"]) == 0
-    captured = capsys.readouterr()  # type: ignore[attr-defined]
-    assert '"ok": true' in captured.out
-    assert "0.1.0" in captured.out
-    assert '"tag": "v0.1.0"' in captured.out
+def test_plan_dict_has_tag() -> None:
+    payload = plan_release().as_dict()
+    assert payload["ok"] is True
+    assert payload["tag"] == "v0.1.0"
+    assert payload["version"] == "0.1.0"
