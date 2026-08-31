@@ -1,8 +1,8 @@
 """Hermetic release plan: version + CHANGELOG + optional git tag.
 
-The unit suite never creates tags. `python -m lakehouse release` prints a JSON
-plan. `make tag VERSION=0.1.0` is the explicit path that writes an annotated
-`vX.Y.Z` tag after the plan is clean.
+The unit suite never creates tags. `python -m lakehouse release` is documented
+in docs/release.md. `make tag VERSION=0.1.0` is the explicit path that writes
+an annotated vX.Y.Z tag after the plan is clean.
 """
 
 from __future__ import annotations
@@ -68,10 +68,6 @@ def parse_changelog(text: str) -> list[ChangelogSection]:
     return sections
 
 
-def changelog_versions(sections: list[ChangelogSection]) -> list[str]:
-    return [s.title for s in sections if not s.is_unreleased]
-
-
 @dataclass
 class ReleasePlan:
     version: str
@@ -134,15 +130,14 @@ def plan_release(root: Path | None = None, *, version: str | None = None) -> Rel
     if not SEMVER_RE.match(requested):
         errors.append(f"version {requested!r} is not semver X.Y.Z")
     if py_version != pkg_version:
-        errors.append(
-            f"pyproject version {py_version} != lakehouse.__version__ {pkg_version}"
-        )
+        msg = f"pyproject version {py_version} != lakehouse.__version__ {pkg_version}"
+        errors.append(msg)
     if requested != py_version:
         errors.append(f"requested version {requested} != pyproject {py_version}")
     if not changelog_path.is_file():
         errors.append("CHANGELOG.md is missing")
     elif not has_version:
-        errors.append(f"CHANGELOG.md has no '## [{requested}]' section")
+        errors.append(f"CHANGELOG.md has no section for {requested}")
     else:
         section = next(s for s in sections if s.title == requested)
         if not section.body:
@@ -173,7 +168,7 @@ def create_annotated_tag(
     version: str | None = None,
     dry_run: bool = True,
 ) -> dict[str, object]:
-    """Create `vX.Y.Z` only when the plan is clean and dry_run is False."""
+    """Create vX.Y.Z only when the plan is clean and dry_run is False."""
     root = root or repo_root()
     plan = plan_release(root, version=version)
     payload = plan.as_dict()
@@ -183,10 +178,12 @@ def create_annotated_tag(
         return payload
     if plan.tag in plan.existing_tags:
         payload["tagged"] = True
-        payload["notes"] = list(plan.notes) + [f"left existing {plan.tag} in place"]
+        extra = f"left existing {plan.tag} in place"
+        payload["notes"] = list(plan.notes) + [extra]
         return payload
     if dry_run:
-        payload["notes"] = list(plan.notes) + [f"would create annotated tag {plan.tag}"]
+        extra = f"would create annotated tag {plan.tag}"
+        payload["notes"] = list(plan.notes) + [extra]
         return payload
     message = f"Release {plan.tag}"
     proc = subprocess.run(
@@ -201,5 +198,6 @@ def create_annotated_tag(
     payload["tagged"] = proc.returncode == 0
     if proc.returncode != 0:
         payload["ok"] = False
-        payload["errors"] = list(plan.errors) + [proc.stderr.strip() or "git tag failed"]
+        err = proc.stderr.strip() or "git tag failed"
+        payload["errors"] = list(plan.errors) + [err]
     return payload
