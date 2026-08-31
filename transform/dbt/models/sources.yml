@@ -1,0 +1,32 @@
+version: 2
+
+sources:
+  - name: lakehouse
+    description: Glue Data Catalog tables owned by Terraform / lakehouse.catalog.
+    database: awsdatacatalog
+    schema: lakehouse_local
+    tables:
+      - name: daily_event_metrics
+        description: Gold daily grain by event_type (Hive keys metric + dt).
+        columns:
+          - name: events
+            description: Count of Silver events in the (metric, dt) bucket.
+          - name: amount_usd
+            description: Sum of Silver amount_usd, rounded to 2 decimal places.
+          - name: metric
+            description: Hive partition; same enum as event_type.
+          - name: dt
+            description: Event occurrence date YYYY-MM-DD.
+      - name: commerce_event_conformed
+        description: Silver event-level fact plus _late flag.
+        columns:
+          - name: event_id
+          - name: event_ts
+          - name: event_type
+          - name: user_id
+          - name: sku
+          - name: quantity
+          - name: amount_usd
+          - name: country
+          - name: _late
+          - name: dt

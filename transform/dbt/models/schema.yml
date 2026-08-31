@@ -1,0 +1,49 @@
+version: 2
+
+models:
+  - name: stg_daily_event_metrics
+    description: Gold daily_event_metrics with Hive metric renamed to event_type.
+    columns:
+      - name: event_type
+        tests: [not_null]
+      - name: dt
+        tests: [not_null]
+      - name: events
+        tests: [not_null]
+      - name: amount_usd
+        tests: [not_null]
+
+  - name: fct_daily_event_metrics
+    description: Analyst-facing daily fact at event_type x dt grain.
+    columns:
+      - name: event_type
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['page_view', 'add_to_cart', 'purchase', 'refund']
+      - name: dt
+        tests: [not_null]
+      - name: events
+        tests: [not_null]
+      - name: amount_usd
+        tests: [not_null]
+
+  - name: fct_daily_purchase_revenue
+    description: Purchase-only Gold rows (GMV proxy). Matches Athena gold_purchase_revenue.
+    columns:
+      - name: dt
+        tests: [not_null]
+      - name: events
+        tests: [not_null]
+      - name: gmv_usd
+        tests: [not_null]
+
+  - name: dim_event_type
+    description: Degenerate event-type dimension from the Gold contract enum.
+    columns:
+      - name: event_type
+        tests:
+          - not_null
+          - unique
+          - accepted_values:
+              values: ['page_view', 'add_to_cart', 'purchase', 'refund']

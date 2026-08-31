@@ -1,0 +1,21 @@
+name: lakehouse
+version: "0.1.0"
+config-version: 2
+profile: lakehouse
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  lakehouse:
+    +on_schema_change: "fail"
+    staging:
+      +materialized: view
+      +schema: staging
+    marts:
+      +materialized: view
+      +schema: marts

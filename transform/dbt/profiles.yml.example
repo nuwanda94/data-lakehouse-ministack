@@ -1,0 +1,20 @@
+# Copy to ~/.dbt/profiles.yml (or set DBT_PROFILES_DIR) for a real Athena run.
+# MiniStack usually has no Athena API — use `python -m lakehouse dbt` locally.
+lakehouse:
+  target: athena
+  outputs:
+    athena:
+      type: awsathena
+      region_name: us-east-1
+      database: lakehouse_local
+      schema: lakehouse_local
+      s3_staging_dir: s3://lakehouse-local-gold/athena-results/dbt/
+      s3_data_dir: s3://lakehouse-local-gold/dbt/
+      work_group: lakehouse-local
+      threads: 2
+      num_retries: 1
+    duckdb:
+      type: duckdb
+      path: ":memory:"
+      schema: lakehouse_local
+      threads: 1
