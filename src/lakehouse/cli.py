@@ -183,9 +183,6 @@ def main(argv: list[str] | None = None) -> int:
             "bronze_events_dlq": settings.bronze_events_dlq,
             "bronze_events_dlq_url": settings.bronze_events_dlq_url,
             "lookback_days": settings.lookback_days,
-            "feature_streaming": settings.feature_streaming,
-            "kinesis_stream": settings.kinesis_stream,
-            "firehose_stream": settings.firehose_stream,
         }
         print(json.dumps(payload, indent=2))
         return 0
