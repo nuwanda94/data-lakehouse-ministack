@@ -109,9 +109,9 @@ python -m lakehouse demo --mode offline --count 20
 
 ## Status
 
-Phases 0–4 and the Phase 5 demo path are in place. Remaining work is
-showcase polish (CONTRIBUTING), security scanning, and an optional Kinesis
-path. Live checklist: [`TODO.md`](TODO.md).
+Phases 0–4 and the Phase 5 demo + README + CONTRIBUTING path are in
+place. Remaining work is security scanning, a CHANGELOG, and an optional
+Kinesis path. Live checklist: [`TODO.md`](TODO.md).
 
 | Area | Status | Notes |
 | --- | --- | --- |
@@ -125,7 +125,7 @@ path. Live checklist: [`TODO.md`](TODO.md).
 | CI + pre-commit | Done | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 | One-command demo | Done | `make demo` · [`docs/demo.md`](docs/demo.md) |
 | README showcase polish | Done | this file |
-| CONTRIBUTING / CODEOWNERS | Later | Phase 5 |
+| CONTRIBUTING / CODEOWNERS | Done | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/CODEOWNERS`](.github/CODEOWNERS) |
 | Security scanning | Later | Checkov / Trivy / detect-secrets |
 | Optional streaming (Kinesis) | Later | Phase 5 P2 |
 
@@ -289,6 +289,7 @@ tests/
 | [`docs/sfn.md`](docs/sfn.md) / [`docs/dlq.md`](docs/dlq.md) | Orchestration + poison path |
 | [`docs/cost-performance.md`](docs/cost-performance.md) | Athena scan cap, Lambda size |
 | [`docs/adr/README.md`](docs/adr/README.md) | Architecture decisions |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) / [`.github/CODEOWNERS`](.github/CODEOWNERS) | How to change the repo + review routing |
 | [`TODO.md`](TODO.md) / [`PROGRESS.md`](PROGRESS.md) | Live checklist + run log |
 
 ## Skills demonstrated
