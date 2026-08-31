@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess test test-integration ci lint pre-commit clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess test test-integration ci lint pre-commit security clean
 
 help:
 	@printf '%s\n' \
@@ -49,6 +49,7 @@ help:
 	  '  make test-integration  live MiniStack Bronze to Silver to Gold' \
 	  '  make lint      ruff check + format check' \
 	  '  make pre-commit  run .pre-commit-config.yaml hooks on the whole tree' \
+	  '  make security  hermetic secret scan + Checkov/Trivy when installed' \
 	  '  make ci        lint + unit + up + infra + seed + pipeline + integration' \
 	  '  make down      stop MiniStack' \
 	  '  make destroy   terraform destroy (keeps MiniStack running)' \
@@ -172,7 +173,10 @@ lint:
 pre-commit:
 	$(PYTHON) -m pre_commit run --all-files --show-diff-on-failure
 
-ci: lint test up infra seed pipeline query test-integration
+security:
+	bash $(ROOT)/scripts/security_scan.sh
+
+ci: lint test security up infra seed pipeline query test-integration
 
 clean: down
 	rm -rf $(TF_DIR)/.terraform $(TF_DIR)/terraform.tfstate $(TF_DIR)/terraform.tfstate.backup $(TF_DIR)/tfplan $(ROOT)/build/lambda
