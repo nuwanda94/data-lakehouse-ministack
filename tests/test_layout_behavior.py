@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 from lakehouse.cli import main
@@ -50,6 +52,14 @@ def test_zone_keys_and_quality() -> None:
     assert gold_key(metric="gmv", day="2026-01-01").endswith("part-000.json")
     results = run_quality_checks(events)
     assert results and all(r.passed for r in results)
+
+
+def test_contributing_and_codeowners_exist() -> None:
+    root = Path(__file__).resolve().parents[1]
+    contributing = (root / "CONTRIBUTING.md").read_text(encoding="utf-8")
+    owners = (root / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
+    assert "Conventional commits" in contributing
+    assert "@nuwanda94" in owners
 
 
 def test_cli_version_and_config(capsys) -> None:

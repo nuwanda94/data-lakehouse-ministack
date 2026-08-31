@@ -58,7 +58,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: One-command demo mode (`make demo`)
 - [ ] feat: Optional streaming path (Kinesis / Firehose)
 - [x] docs: High-quality README with diagrams, GIFs, clear value proposition
-- [ ] docs: CONTRIBUTING.md + CODEOWNERS
+- [x] docs: CONTRIBUTING.md + CODEOWNERS
 - [ ] chore: Release tagging + CHANGELOG
 - [ ] chore: Security scanning (Checkov, Trivy, detect-secrets)
 - [ ] refactor: Extract shared libraries cleanly

@@ -1,0 +1,17 @@
+# Default reviewers for this showcase repo.
+# GitHub requests a review from the matching owner on every PR that
+# touches the path. Required status checks still come from CI
+# (see docs/ci.md).
+#
+# Pattern order: last matching pattern wins.
+
+*                         @nuwanda94
+
+.github/                  @nuwanda94
+infra/                    @nuwanda94
+src/lakehouse/            @nuwanda94
+configs/contracts/        @nuwanda94
+transform/dbt/            @nuwanda94
+docs/                     @nuwanda94
+TODO.md                   @nuwanda94
+PROGRESS.md               @nuwanda94

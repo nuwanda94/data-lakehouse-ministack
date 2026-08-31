@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 02:05 IST
+- Completed: docs: CONTRIBUTING.md + CODEOWNERS
+- Next candidate: chore: Security scanning (Checkov, Trivy, detect-secrets) (P1) / chore: Release tagging + CHANGELOG (P1)
+- Notes: Added contributor guide (conventional commits, hermetic tests, TODO-driven PRs) and `.github/CODEOWNERS` defaulting to @nuwanda94. README status table and docs map now point at both files. Remaining Phase 5: security scanning, CHANGELOG/tags, optional Kinesis path, shared-lib extract.
+
 ## 2026-09-01 01:00 IST
 - Completed: docs: High-quality README with diagrams, GIFs, clear value proposition
 - Next candidate: docs: CONTRIBUTING.md + CODEOWNERS (P1) / chore: Security scanning (Checkov, Trivy, detect-secrets) (P1)
