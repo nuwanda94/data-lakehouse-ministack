@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold sfn sfn-def query catalog runs outputs reprocess test test-integration ci lint pre-commit clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold sfn sfn-def query catalog dbt runs outputs reprocess test test-integration ci lint pre-commit clean
 
 help:
 	@printf '%s\n' \
@@ -40,6 +40,7 @@ help:
 	  '  make sfn-def   print the medallion ASL definition' \
 	  '  make query     print gold object + metrics summary' \
 	  '  make catalog   describe / register Glue Silver and Gold tables' \
+	  '  make dbt       parse and lint transform/dbt Gold models' \
 	  '  make runs      list pipeline run metadata from DynamoDB' \
 	  '  make reprocess rebuild Gold for LOOKBACK_DAYS (late arrivals)' \
 	  '  make test      unit + hermetic zone-path tests' \
@@ -132,6 +133,9 @@ query:
 
 catalog:
 	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; $(PYTHON) -m lakehouse catalog
+
+dbt:
+	@$(PYTHON) -m lakehouse dbt
 
 runs:
 	@bash $(ROOT)/scripts/wait_healthy.sh
