@@ -31,3 +31,16 @@ skip-check:
   - CKV_AWS_117
   - CKV_AWS_173
   - CKV_AWS_272
+  - CKV_AWS_50 # Lambda X-Ray
+  # CloudWatch log groups on MiniStack have no KMS and short retention.
+  - CKV_AWS_158
+  - CKV_AWS_338
+  # Step Functions X-Ray + execution history logging is an ENV=aws follow-up.
+  - CKV_AWS_284
+  - CKV_AWS_285
+  # Only Bronze is event-driven; Silver/Gold are zone-function outputs.
+  - CKV2_AWS_62
+  # Demo SSM parameter is a JSON blob, not a secret — String, not SecureString.
+  - CKV2_AWS_34
+  # Lifecycle rules fight force_destroy / make clean on ephemeral buckets.
+  - CKV2_AWS_61

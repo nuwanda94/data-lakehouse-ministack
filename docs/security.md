@@ -21,6 +21,11 @@ those binaries are on `PATH`. CI installs Checkov and uses `trivy-action`.
   `force_destroy` is required so `make clean` works.
 - DynamoDB PITR / CMK and SQS encryption — dummy local tables/queues.
 - Lambda VPC / X-Ray — not available (or not worth the cold start) on MiniStack.
+- CloudWatch log KMS + 1-year retention, SFN X-Ray / history logging —
+  extra IAM and cost for a laptop loop.
+- S3 lifecycle and Silver/Gold event notifications — Bronze is the only
+  event-driven zone; `force_destroy` must keep working for `make clean`.
+- SSM SecureString — the pipeline parameter is public JSON, not a secret.
 
 Those skips are **local-only**. Before `ENV=aws`, turn the relevant checks
 back on (or add the matching Terraform resources) rather than copying the
