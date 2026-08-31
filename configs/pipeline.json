@@ -13,6 +13,7 @@
   "features": {
     "sfn": true,
     "emit_metrics": false,
+    "streaming": false,
     "ssm": false
   },
   "ssm": {

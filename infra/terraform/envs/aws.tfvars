@@ -7,6 +7,7 @@ use_static_credentials = false
 force_destroy          = false
 enable_glue            = true
 enable_athena          = true
+enable_streaming       = false
 ssm_enabled            = true
 project                = "lakehouse-aws"
 bronze_bucket          = "lakehouse-aws-bronze"

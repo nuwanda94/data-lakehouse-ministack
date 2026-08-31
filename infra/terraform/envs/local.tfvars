@@ -6,6 +6,7 @@ use_static_credentials = true
 force_destroy          = true
 enable_glue            = false
 enable_athena          = false
+enable_streaming       = false
 ssm_enabled            = false
 project                = "lakehouse-local"
 bronze_bucket          = "lakehouse-local-bronze"
