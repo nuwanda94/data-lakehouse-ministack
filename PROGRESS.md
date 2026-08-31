@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 01:00 IST
+- Completed: docs: High-quality README with diagrams, GIFs, clear value proposition
+- Next candidate: docs: CONTRIBUTING.md + CODEOWNERS (P1) / chore: Security scanning (Checkov, Trivy, detect-secrets) (P1)
+- Notes: README now leads with the value proposition and `make demo`, refreshes the architecture Mermaid for Lambdas + SFN + analytics, adds `docs/architecture.svg`, and marks Phases 0–4 / demo as done. A recorded terminal GIF is still optional; the demo JSON walkthrough stands in until one is captured.
+
 ## 2026-09-01 00:10 IST
 - Completed: feat: One-command demo mode (`make demo`)
 - Next candidate: docs: High-quality README with diagrams, GIFs, clear value proposition (P0 Phase 5) / docs: CONTRIBUTING.md + CODEOWNERS (P1)
