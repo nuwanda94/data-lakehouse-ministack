@@ -11,10 +11,13 @@ a laptop and on every PR.
 | `lint` | ruff check + ruff format + `terraform fmt -check` | yes |
 | `pre-commit` | `pre-commit run --all-files` (same hooks as `.pre-commit-config.yaml`) | yes |
 | `unit` | `make test` (hermetic; no MiniStack) | yes |
+| `security` | hermetic secret scan + Checkov + Trivy secrets | yes |
 | `ministack-pipeline` | `make up` → `infra` → `seed` → `pipeline` → `query` → `test-integration` | yes |
 
 The workflow job `name:` values above are the GitHub status-check names.
 Protect `main` against those exact strings.
+
+Security details and MiniStack Checkov skips: [`docs/security.md`](security.md).
 
 ## Local setup
 
@@ -23,6 +26,7 @@ pip install -e ".[dev]"          # includes pre-commit
 pre-commit install               # git hook on commit
 make pre-commit                  # run every hook against the whole tree
 make lint                        # ruff only
+make security                    # hermetic scan; Checkov/Trivy if installed
 make ci                          # full local analogue of GHA (needs Docker + Terraform)
 ```
 
@@ -40,6 +44,7 @@ A repo admin should set the following on `main`
    - `lint`
    - `pre-commit`
    - `unit`
+   - `security`
    - `ministack-pipeline`
 3. Require branches to be up to date before merging.
 4. Do **not** allow bypassing the above for administrators in a shared repo

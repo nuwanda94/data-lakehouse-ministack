@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 03:05 IST
+- Completed: chore: Security scanning (Checkov, Trivy, detect-secrets)
+- Next candidate: chore: Release tagging + CHANGELOG (P1) / docs: Skills demonstrated + hiring-manager friendly section (P0 leftover) / feat: Optional streaming path (Kinesis / Firehose) (P2)
+- Notes: Added hermetic `lakehouse.security` + `python -m lakehouse security` + `make security`. CI `security` job runs the hermetic scan, Checkov against `infra/terraform` (MiniStack skips in `.checkov.yaml`), and Trivy secret scan. Dummy MiniStack `test`/`test` keys are allowlisted; live AKIA/PEM patterns fail the unit suite. Docs in `docs/security.md`.
+
 ## 2026-09-01 02:05 IST
 - Completed: docs: CONTRIBUTING.md + CODEOWNERS
 - Next candidate: chore: Security scanning (Checkov, Trivy, detect-secrets) (P1) / chore: Release tagging + CHANGELOG (P1)

@@ -60,7 +60,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] docs: High-quality README with diagrams, GIFs, clear value proposition
 - [x] docs: CONTRIBUTING.md + CODEOWNERS
 - [ ] chore: Release tagging + CHANGELOG
-- [ ] chore: Security scanning (Checkov, Trivy, detect-secrets)
+- [x] chore: Security scanning (Checkov, Trivy, detect-secrets)
 - [ ] refactor: Extract shared libraries cleanly
 - [ ] docs: “Skills demonstrated” + hiring-manager friendly section
 
