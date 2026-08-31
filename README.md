@@ -109,9 +109,9 @@ python -m lakehouse demo --mode offline --count 20
 
 ## Status
 
-Phases 0–4 and the Phase 5 demo + README + CONTRIBUTING path are in
-place. Remaining work is security scanning, a CHANGELOG, and an optional
-Kinesis path. Live checklist: [`TODO.md`](TODO.md).
+Phases 0–4 and most of Phase 5 are in place. Remaining work is a
+CHANGELOG/tag, an optional Kinesis path, and a shared-lib extract.
+Live checklist: [`TODO.md`](TODO.md).
 
 | Area | Status | Notes |
 | --- | --- | --- |
@@ -126,7 +126,8 @@ Kinesis path. Live checklist: [`TODO.md`](TODO.md).
 | One-command demo | Done | `make demo` · [`docs/demo.md`](docs/demo.md) |
 | README showcase polish | Done | this file |
 | CONTRIBUTING / CODEOWNERS | Done | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/CODEOWNERS`](.github/CODEOWNERS) |
-| Security scanning | Later | Checkov / Trivy / detect-secrets |
+| Skills / hiring-manager map | Done | [`docs/skills.md`](docs/skills.md) |
+| Security scanning | Done | [`docs/security.md`](docs/security.md), `make security` |
 | Optional streaming (Kinesis) | Later | Phase 5 P2 |
 
 ## Prerequisites
@@ -289,17 +290,21 @@ tests/
 | [`docs/sfn.md`](docs/sfn.md) / [`docs/dlq.md`](docs/dlq.md) | Orchestration + poison path |
 | [`docs/cost-performance.md`](docs/cost-performance.md) | Athena scan cap, Lambda size |
 | [`docs/adr/README.md`](docs/adr/README.md) | Architecture decisions |
+| [`docs/skills.md`](docs/skills.md) | Hiring-manager skill matrix + 15-minute review path |
+| [`docs/security.md`](docs/security.md) | Checkov / Trivy / hermetic secret scan |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) / [`.github/CODEOWNERS`](.github/CODEOWNERS) | How to change the repo + review routing |
 | [`TODO.md`](TODO.md) / [`PROGRESS.md`](PROGRESS.md) | Live checklist + run log |
 
 ## Skills demonstrated
 
-Hiring-manager map of what the repo exercises:
+Hiring-manager map of what the repo exercises. Full write-up with a
+15-minute review path and role mapping:
+[`docs/skills.md`](docs/skills.md).
 
 | Skill | Where it shows up |
 | --- | --- |
 | Medallion modeling | Bronze / Silver / Gold buckets and transforms |
-| Zone contracts | `configs/contracts/` + data dictionary |
+| Zone contracts + evolution | `configs/contracts/` + `lakehouse.contract_check` |
 | Data quality | Named gate that can fail or quarantine a run |
 | Event-driven ingest | S3 → SQS → ingest Lambda + DLQ redrive |
 | Orchestration | Local runner **and** Step Functions (ADR-003) |
@@ -308,7 +313,7 @@ Hiring-manager map of what the repo exercises:
 | Local-first AWS | MiniStack + endpoint-aware boto3 |
 | IaC | Terraform workspaces / tfvars for local vs AWS |
 | Operability | Makefile, JSON CLI, run table, runbook |
-| Platform hygiene | pytest, pre-commit, GHA vs MiniStack |
+| Platform hygiene | pytest, pre-commit, GHA vs MiniStack, security scan |
 | Cost awareness | Athena bytes cap, Lambda right-size notes |
 
 ## Cost and performance
