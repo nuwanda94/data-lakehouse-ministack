@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 04:05 IST
+- Completed: docs: Skills demonstrated + hiring-manager friendly section
+- Next candidate: chore: Release tagging + CHANGELOG (P1) / feat: Optional streaming path (Kinesis / Firehose) (P2) / refactor: Extract shared libraries cleanly (P2)
+- Notes: Expanded the README skills table and added `docs/skills.md` with a 15-minute review path, skill-to-artifact matrix, and role mapping (DE / platform / analytics / EM). Status table now reflects security scanning as done.
+
 ## 2026-09-01 03:05 IST
 - Completed: chore: Security scanning (Checkov, Trivy, detect-secrets)
 - Next candidate: chore: Release tagging + CHANGELOG (P1) / docs: Skills demonstrated + hiring-manager friendly section (P0 leftover) / feat: Optional streaming path (Kinesis / Firehose) (P2)

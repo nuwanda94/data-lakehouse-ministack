@@ -62,7 +62,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [ ] chore: Release tagging + CHANGELOG
 - [x] chore: Security scanning (Checkov, Trivy, detect-secrets)
 - [ ] refactor: Extract shared libraries cleanly
-- [ ] docs: “Skills demonstrated” + hiring-manager friendly section
+- [x] docs: “Skills demonstrated” + hiring-manager friendly section
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).
