@@ -91,16 +91,15 @@ jobs:
         run: python -m pip install checkov
       - name: Checkov Terraform
         run: checkov -d infra/terraform --config-file .checkov.yaml
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy version
       - name: Trivy secret scan
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: secret
-          severity: HIGH,CRITICAL
-          exit-code: "1"
-          trivy-config: trivy.yaml
-          skip-files: ".env.example,Makefile,.github/workflows/ci.yml"
+        run: |
+          trivy fs --config trivy.yaml --scanners secret --severity HIGH,CRITICAL \
+            --exit-code 1 \
+            --skip-files .env.example,Makefile,.github/workflows/ci.yml .
 
   ministack:
     name: ministack-pipeline
