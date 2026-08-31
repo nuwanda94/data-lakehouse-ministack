@@ -121,6 +121,10 @@ def main(argv: list[str] | None = None) -> int:
     p_settings.add_argument("--no-dotenv", action="store_true")
 
     sub.add_parser("contracts", help="Validate zone contracts against in-repo producers")
+    sub.add_parser(
+        "security",
+        help="Scan the repo for secrets and verify Checkov/Trivy config files",
+    )
 
     p_outputs = sub.add_parser("outputs", help="Emit Terraform outputs as env exports")
     p_outputs.add_argument("--tf-dir", default="infra/terraform")
@@ -212,6 +216,13 @@ def main(argv: list[str] | None = None) -> int:
         issues = check_all()
         print(json.dumps(report_issues(issues), indent=2))
         return 1 if errors_only(issues) else 0
+
+    if args.command == "security":
+        from lakehouse.security import scan_repo
+
+        report = scan_repo()
+        print(json.dumps(report.as_dict(), indent=2))
+        return 0 if report.ok else 1
 
     if args.command == "health":
         from lakehouse.ops.health import check_health
