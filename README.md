@@ -77,6 +77,7 @@ the same source (`docs/architecture.png`) once an assets export is added.
 | Glue Catalog + Athena named queries | Done | [`docs/catalog.md`](docs/catalog.md) · [`docs/athena.md`](docs/athena.md) |
 | Analytical data model | Done | [`docs/analytical-model.md`](docs/analytical-model.md) |
 | dbt / query UI | Later | Phase 3 P2 |
+| Cost & performance notes | Done | [`docs/cost-performance.md`](docs/cost-performance.md) |
 
 Live checklist: [`TODO.md`](TODO.md). Run log: [`PROGRESS.md`](PROGRESS.md).
 ADR index: [`docs/adr/README.md`](docs/adr/README.md).
@@ -241,6 +242,8 @@ docs/partitions.md
 docs/late-arriving.md
 docs/failure-injection.md
 docs/runbook.md      # reprocess a date / debug a failed run
+docs/cost-performance.md
+docs/environments.md
 tests/
 ```
 
@@ -262,6 +265,25 @@ Hiring-manager oriented map of what this repo exercises as it matures:
 | Orchestration | Python runner now; Step Functions in Phase 2 ([ADR-003](docs/adr/003-local-orchestration-vs-step-functions.md)) |
 | Analytics surface | Glue + Athena named queries; dbt still Phase 3 P2 |
 | Platform hygiene | pytest, pre-commit, GitHub Actions vs MiniStack |
+| Cost awareness | Athena scan cap, Lambda sizes, [`docs/cost-performance.md`](docs/cost-performance.md) |
+
+## Cost and performance
+
+MiniStack is free. Real AWS (`ENV=aws`) should stay **under about a
+dollar a month** at demo volume. The line that can surprise you is
+Athena scanning Bronze instead of Gold.
+
+| Control | Default | Why |
+| --- | --- | --- |
+| Athena bytes-scanned cutoff | 100 MiB / query | Hard cap (~$0.0005/query at $5/TB) |
+| Lambda memory / timeout | 256 MB, 60–120 s | Matches current JSON + daily Gold grain |
+| `FEATURE_EMIT_METRICS` | off | Avoid CloudWatch custom-metric noise locally |
+| Glue / Athena Terraform flags | off on MiniStack | No catalog APIs needed for `make infra` |
+| Query surface | Gold named queries | Aggregates, not raw events |
+
+Worked examples, right-sizing notes, and a scale-up sketch:
+[`docs/cost-performance.md`](docs/cost-performance.md). Environments:
+[`docs/environments.md`](docs/environments.md).
 
 ## Troubleshooting
 
