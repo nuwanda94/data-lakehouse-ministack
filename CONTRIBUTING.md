@@ -106,3 +106,16 @@ detect-secrets), wire them through `make` and CI rather than a one-off script.
 
 By contributing you agree the change is licensed under the MIT license in
 [`LICENSE`](LICENSE).
+
+## Releases
+
+Version is `[project].version` in `pyproject.toml` and `__version__` in
+`src/lakehouse/__init__.py`. Keep them equal. User-facing notes go in
+[`CHANGELOG.md`](CHANGELOG.md) under **Unreleased** until a tag is cut.
+
+```bash
+python -m lakehouse release    # hermetic plan, no git tag
+make tag VERSION=X.Y.Z         # annotated vX.Y.Z after the plan is clean
+```
+
+Full steps: [`docs/release.md`](docs/release.md).

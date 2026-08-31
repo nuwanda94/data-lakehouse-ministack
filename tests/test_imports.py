@@ -17,6 +17,8 @@ PUBLIC_MODULES = [
     "lakehouse.dbt",
     "lakehouse.query_ui",
     "lakehouse.metrics",
+    "lakehouse.release",
+    "lakehouse.security",
     "lakehouse.cli",
     "lakehouse.seed",
     "lakehouse.seed.generate",
