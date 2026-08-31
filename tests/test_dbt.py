@@ -45,11 +45,7 @@ def test_compiled_sql_uses_glue_names() -> None:
 
 def test_sources_include_silver_and_gold() -> None:
     project = load_project()
-    tables = {
-        table["name"]
-        for source in project.sources
-        for table in source.get("tables") or []
-    }
+    tables = {table["name"] for source in project.sources for table in source.get("tables") or []}
     assert GOLD_TABLE in tables
     assert SILVER_TABLE in tables
     assert project.sources[0]["schema"] == GLUE_DATABASE
