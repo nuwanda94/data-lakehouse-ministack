@@ -38,7 +38,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 
 - [x] feat: Glue Data Catalog tables for Silver & Gold
 - [x] feat: Athena workgroup + named queries
-- [ ] feat: dbt project on top of Athena/Glue
+- [x] feat: dbt project on top of Athena/Glue
 - [ ] feat: Simple query UI or notebook
 - [x] chore: Partition projection / partition management
 - [x] docs: Analytical data model documentation

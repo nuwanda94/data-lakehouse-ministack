@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-31 22:05 IST
+- Completed: feat: dbt project on top of Athena/Glue
+- Next candidate: feat: Simple query UI or notebook (P2)
+- Notes: Added `transform/dbt` (sources on Glue `lakehouse_local`, staging + Gold marts + `dim_event_type`, schema tests). `python -m lakehouse dbt` / `make dbt` parse and lint without dbt-core so MiniStack CI stays offline. Docs in `docs/dbt.md`. Remaining Phase 3 P2: query UI.
+
 ## 2026-08-31 21:05 IST
 - Completed: docs: Architecture Decision Records for remaining big choices
 - Next candidate: feat: dbt project on top of Athena/Glue (P2)
