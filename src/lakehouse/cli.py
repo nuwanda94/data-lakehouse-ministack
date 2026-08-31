@@ -100,6 +100,23 @@ def main(argv: list[str] | None = None) -> int:
     p_ui.add_argument("--host", default="127.0.0.1")
     p_ui.add_argument("--port", type=int, default=8765)
 
+    p_stream = sub.add_parser(
+        "stream",
+        help="Optional Kinesis / Firehose producer into Bronze",
+    )
+    p_stream.add_argument("--count", type=int, default=20)
+    p_stream.add_argument(
+        "--mode",
+        choices=("auto", "live", "offline"),
+        default="auto",
+        help="auto tries MiniStack then falls back to an in-memory path",
+    )
+    p_stream.add_argument(
+        "--sink",
+        choices=("kinesis", "firehose", "both"),
+        default="both",
+    )
+
     p_demo = sub.add_parser(
         "demo",
         help="Seed → pipeline → query and assert Gold is populated",
@@ -166,6 +183,9 @@ def main(argv: list[str] | None = None) -> int:
             "bronze_events_dlq": settings.bronze_events_dlq,
             "bronze_events_dlq_url": settings.bronze_events_dlq_url,
             "lookback_days": settings.lookback_days,
+            "feature_streaming": settings.feature_streaming,
+            "kinesis_stream": settings.kinesis_stream,
+            "firehose_stream": settings.firehose_stream,
         }
         print(json.dumps(payload, indent=2))
         return 0
@@ -187,6 +207,13 @@ def main(argv: list[str] | None = None) -> int:
 
         result = describe_project()
         print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "stream":
+        from lakehouse.stream import run_stream
+
+        result = run_stream(count=args.count, mode=args.mode, sink=args.sink)
+        print(json.dumps(result, indent=2, default=str))
         return 0 if result.get("ok") else 1
 
     if args.command == "demo":
