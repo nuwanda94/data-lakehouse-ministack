@@ -1,0 +1,33 @@
+# Checkov policy for infra/terraform.
+# Skips are MiniStack-local tradeoffs documented in docs/security.md —
+# they are NOT a blessing to ship the same gaps to a production AWS account.
+compact: true
+framework:
+  - terraform
+directory: infra/terraform
+quiet: true
+soft-fail: false
+download-external-modules: false
+skip-check:
+  # Local MiniStack buckets are ephemeral and force-destroyed on purpose.
+  - CKV_AWS_18 # S3 access logging
+  - CKV_AWS_19 # S3 default encryption
+  - CKV_AWS_21 # S3 versioning
+  - CKV_AWS_144 # S3 cross-region replication
+  - CKV_AWS_145 # S3 KMS encryption
+  - CKV2_AWS_6 # S3 public access block
+  - CKV_AWS_53
+  - CKV_AWS_54
+  - CKV_AWS_55
+  - CKV_AWS_56
+  # Demo DynamoDB tables; PITR/CMK are env-aws follow-ups.
+  - CKV_AWS_28 # DynamoDB PITR
+  - CKV_AWS_119 # DynamoDB encryption
+  # SQS is local-only; encryption + CMK belong on ENV=aws.
+  - CKV_AWS_27
+  # Lambda packaging for MiniStack: no VPC, no DLQ X-Ray tax on every invoke.
+  - CKV_AWS_115
+  - CKV_AWS_116
+  - CKV_AWS_117
+  - CKV_AWS_173
+  - CKV_AWS_272

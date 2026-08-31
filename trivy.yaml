@@ -1,0 +1,12 @@
+# Trivy filesystem scan used by `make security` and CI.
+severity:
+  - HIGH
+  - CRITICAL
+scan:
+  skip-dirs:
+    - .git
+    - .venv
+    - .terraform
+    - infra/terraform/.terraform
+    - build
+    - dist
