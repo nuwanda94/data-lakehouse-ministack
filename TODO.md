@@ -56,7 +56,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 ## Phase 5 — Polish & Showcase
 
 - [x] feat: One-command demo mode (`make demo`)
-- [ ] feat: Optional streaming path (Kinesis / Firehose)
+- [x] feat: Optional streaming path (Kinesis / Firehose)
 - [x] docs: High-quality README with diagrams, GIFs, clear value proposition
 - [x] docs: CONTRIBUTING.md + CODEOWNERS
 - [x] chore: Release tagging + CHANGELOG
