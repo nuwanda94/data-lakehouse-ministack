@@ -83,6 +83,22 @@ def main(argv: list[str] | None = None) -> int:
         "dbt",
         help="Parse and lint the transform/dbt Gold project (no dbt-core required)",
     )
+    p_ui = sub.add_parser(
+        "ui",
+        help="Render the Gold query dashboard (HTML + named Athena SQL)",
+    )
+    p_ui.add_argument(
+        "--out",
+        default=None,
+        help="Write a self-contained HTML dashboard to this path",
+    )
+    p_ui.add_argument(
+        "--serve",
+        action="store_true",
+        help="Serve the HTML from a stdlib HTTP server (blocking)",
+    )
+    p_ui.add_argument("--host", default="127.0.0.1")
+    p_ui.add_argument("--port", type=int, default=8765)
     sub.add_parser(
         "env",
         help="Print the resolved local|aws environment profile as JSON",
@@ -154,6 +170,20 @@ def main(argv: list[str] | None = None) -> int:
 
         result = describe_project()
         print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "ui":
+        from lakehouse.query_ui import describe_ui, serve_html
+
+        out = args.out
+        if args.serve and not out:
+            out = "build/query-ui.html"
+        result = describe_ui(out=out)
+        print(json.dumps(result, indent=2))
+        if args.serve and result.get("html_path"):
+            from pathlib import Path
+
+            serve_html(Path(str(result["html_path"])), host=args.host, port=args.port)
         return 0 if result.get("ok") else 1
 
     if args.command == "contracts":
