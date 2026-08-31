@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold sfn sfn-def query catalog dbt ui runs outputs reprocess test test-integration ci lint pre-commit clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess test test-integration ci lint pre-commit clean
 
 help:
 	@printf '%s\n' \
@@ -42,6 +42,7 @@ help:
 	  '  make catalog   describe / register Glue Silver and Gold tables' \
 	  '  make dbt       parse and lint transform/dbt Gold models' \
 	  '  make ui        write build/query-ui.html (Gold + named Athena SQL)' \
+	  '  make demo      seed → pipeline → query with assertions' \
 	  '  make runs      list pipeline run metadata from DynamoDB' \
 	  '  make reprocess rebuild Gold for LOOKBACK_DAYS (late arrivals)' \
 	  '  make test      unit + hermetic zone-path tests' \
@@ -140,6 +141,11 @@ dbt:
 
 ui:
 	@$(PYTHON) -m lakehouse ui --out $(ROOT)/build/query-ui.html
+
+demo:
+	@bash $(ROOT)/scripts/wait_healthy.sh
+	@eval "$$(bash $(ROOT)/scripts/get_outputs.sh --tf-dir $(TF_DIR))"; \
+	  $(PYTHON) -m lakehouse demo --mode live
 
 runs:
 	@bash $(ROOT)/scripts/wait_healthy.sh
