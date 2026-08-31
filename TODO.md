@@ -59,7 +59,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [ ] feat: Optional streaming path (Kinesis / Firehose)
 - [x] docs: High-quality README with diagrams, GIFs, clear value proposition
 - [x] docs: CONTRIBUTING.md + CODEOWNERS
-- [ ] chore: Release tagging + CHANGELOG
+- [x] chore: Release tagging + CHANGELOG
 - [x] chore: Security scanning (Checkov, Trivy, detect-secrets)
 - [ ] refactor: Extract shared libraries cleanly
 - [x] docs: “Skills demonstrated” + hiring-manager friendly section
