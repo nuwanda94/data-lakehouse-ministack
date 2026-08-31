@@ -11,7 +11,8 @@ How to cut a release: [`docs/release.md`](docs/release.md).
 
 ### Added
 
-- Optional Kinesis / Firehose streaming path (Phase 5 P2, not started).
+- Optional Kinesis / Firehose streaming path (`python -m lakehouse stream`,
+  `make stream`, gated Terraform in `infra/terraform/streaming.tf`).
 - Shared-library extract across zone handlers (Phase 5 P2, not started).
 
 ## [0.1.0] - 2026-09-01
