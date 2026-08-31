@@ -14,6 +14,7 @@ PUBLIC_MODULES = [
     "lakehouse.catalog",
     "lakehouse.partitions",
     "lakehouse.athena",
+    "lakehouse.dbt",
     "lakehouse.metrics",
     "lakehouse.cli",
     "lakehouse.seed",
