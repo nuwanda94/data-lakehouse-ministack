@@ -99,6 +99,19 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_ui.add_argument("--host", default="127.0.0.1")
     p_ui.add_argument("--port", type=int, default=8765)
+
+    p_demo = sub.add_parser(
+        "demo",
+        help="Seed → pipeline → query and assert Gold is populated",
+    )
+    p_demo.add_argument("--count", type=int, default=20)
+    p_demo.add_argument(
+        "--mode",
+        choices=("auto", "live", "offline"),
+        default="auto",
+        help="auto tries MiniStack then falls back to an in-memory path",
+    )
+
     sub.add_parser(
         "env",
         help="Print the resolved local|aws environment profile as JSON",
@@ -170,6 +183,13 @@ def main(argv: list[str] | None = None) -> int:
 
         result = describe_project()
         print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "demo":
+        from lakehouse.ops.demo import run_demo
+
+        result = run_demo(count=args.count, mode=args.mode)
+        print(json.dumps(result, indent=2, default=str))
         return 0 if result.get("ok") else 1
 
     if args.command == "ui":
