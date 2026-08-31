@@ -80,6 +80,10 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     sub.add_parser(
+        "dbt",
+        help="Parse and lint the transform/dbt Gold project (no dbt-core required)",
+    )
+    sub.add_parser(
         "env",
         help="Print the resolved local|aws environment profile as JSON",
     )
@@ -144,6 +148,13 @@ def main(argv: list[str] | None = None) -> int:
         else:
             sys.stdout.write(format_exports(values, export=args.export))
         return 0
+
+    if args.command == "dbt":
+        from lakehouse.dbt import describe_project
+
+        result = describe_project()
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
 
     if args.command == "contracts":
         from lakehouse.contract_check import check_all, errors_only, report_issues
