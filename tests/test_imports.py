@@ -41,6 +41,7 @@ PUBLIC_MODULES = [
     "lakehouse.orchestration.sfn",
     "lakehouse.ops",
     "lakehouse.ops.seed",
+    "lakehouse.ops.demo",
     "lakehouse.ops.pipeline",
     "lakehouse.ops.outputs",
     "lakehouse.ops.runs",
