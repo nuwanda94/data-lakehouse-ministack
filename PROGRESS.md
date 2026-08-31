@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 00:10 IST
+- Completed: feat: One-command demo mode (`make demo`)
+- Next candidate: docs: High-quality README with diagrams, GIFs, clear value proposition (P0 Phase 5) / docs: CONTRIBUTING.md + CODEOWNERS (P1)
+- Notes: Added `lakehouse.ops.demo` + `python -m lakehouse demo` + `make demo`. Offline backend is hermetic (generate → cleanse → quality → gold + assertions). Live backend seeds MiniStack, runs the local pipeline, queries Gold. Auto mode falls back when MiniStack is down. Unit tests cover the offline path so CI stays green without Docker.
+
 ## 2026-08-31 23:25 IST
 - Completed: feat: Simple query UI or notebook
 - Next candidate: feat: One-command demo mode (`make demo`) (P1) / docs: high-quality README polish (P0 Phase 5)

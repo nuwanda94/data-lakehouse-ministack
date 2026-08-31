@@ -53,5 +53,16 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] chore: Cost & performance notes in README
 - [x] docs: Architecture Decision Records for remaining big choices
 
+## Phase 5 — Polish & Showcase
+
+- [x] feat: One-command demo mode (`make demo`)
+- [ ] feat: Optional streaming path (Kinesis / Firehose)
+- [ ] docs: High-quality README with diagrams, GIFs, clear value proposition
+- [ ] docs: CONTRIBUTING.md + CODEOWNERS
+- [ ] chore: Release tagging + CHANGELOG
+- [ ] chore: Security scanning (Checkov, Trivy, detect-secrets)
+- [ ] refactor: Extract shared libraries cleanly
+- [ ] docs: “Skills demonstrated” + hiring-manager friendly section
+
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).
