@@ -51,7 +51,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Schema evolution & contract testing
 - [x] feat: Multi-environment support (local / real AWS)
 - [x] chore: Cost & performance notes in README
-- [ ] docs: Architecture Decision Records for remaining big choices
+- [x] docs: Architecture Decision Records for remaining big choices
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).

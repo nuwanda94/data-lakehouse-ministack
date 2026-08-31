@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-31 21:05 IST
+- Completed: docs: Architecture Decision Records for remaining big choices
+- Next candidate: feat: dbt project on top of Athena/Glue (P2)
+- Notes: Added ADR-001 (MiniStack), ADR-002 (medallion zones), ADR-004 (in-process quality gate), ADR-005 (Parquet + Glue/Athena), ADR-006 (single Terraform root / two env files), ADR-007 (idempotency in zone functions). Index in docs/adr/README.md. Remaining Phase 3 P2: dbt, then simple query UI.
+
 ## 2026-08-31 20:00 IST
 - Completed: chore: Cost & performance notes in README
 - Next candidate: docs: Architecture Decision Records for remaining big choices (P1)
