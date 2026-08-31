@@ -12,13 +12,13 @@ def test_dummy_ministack_secret_is_allowed() -> None:
 
 
 def test_real_looking_akia_is_flagged() -> None:
-    text = "AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE\n"
+    text = "AWS_ACCESS_KEY_ID=" + "AKIA" + "IOSFODNN7EXAMPLE\n"
     hits = scan_text(text, relpath="leak.env")
     assert any(h.kind == "aws_access_key_id" for h in hits)
 
 
 def test_pem_private_key_is_flagged() -> None:
-    text = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n"
+    text = "-----BEGIN " + "PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASC\n"
     hits = scan_text(text, relpath="id_rsa")
     assert any(h.kind == "private_key" for h in hits)
 
