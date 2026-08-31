@@ -50,7 +50,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Structured metrics (CloudWatch + custom)
 - [x] feat: Schema evolution & contract testing
 - [x] feat: Multi-environment support (local / real AWS)
-- [ ] chore: Cost & performance notes in README
+- [x] chore: Cost & performance notes in README
 - [ ] docs: Architecture Decision Records for remaining big choices
 
 ## Progress Log

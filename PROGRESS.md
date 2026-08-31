@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-08-31 20:00 IST
+- Completed: chore: Cost & performance notes in README
+- Next candidate: docs: Architecture Decision Records for remaining big choices (P1)
+- Notes: Added `docs/cost-performance.md` (Athena scan math, Lambda GB-seconds, demo vs 1M-events/day sketch, observability controls) and a Cost and performance section on the README. Next leftover Phase 4 P1 is remaining ADRs; Phase 3 P2 leftovers are dbt + query UI.
+
 ## 2026-08-30 23:15 IST
 - Completed: feat: Multi-environment support (local / real AWS)
 - Next candidate: chore: Cost & performance notes in README (P1)
