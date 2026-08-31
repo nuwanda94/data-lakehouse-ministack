@@ -113,3 +113,15 @@ output "athena_workgroup" {
 output "athena_result_location" {
   value = "s3://${var.gold_bucket}/athena-results/"
 }
+
+output "enable_streaming" {
+  value = var.enable_streaming
+}
+
+output "kinesis_stream" {
+  value = var.enable_streaming ? aws_kinesis_stream.events[0].name : var.kinesis_stream
+}
+
+output "firehose_stream" {
+  value = var.enable_streaming ? aws_kinesis_firehose_delivery_stream.events[0].name : var.firehose_stream
+}
