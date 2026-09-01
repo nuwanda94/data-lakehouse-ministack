@@ -1,6 +1,6 @@
 # ADR-008: Optional Kinesis / Firehose path into Bronze
 
-Status: Accepted  
+Status: Accepted
 Date: 2026-09-01
 
 ## Context
