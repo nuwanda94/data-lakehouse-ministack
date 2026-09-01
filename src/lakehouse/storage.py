@@ -66,7 +66,7 @@ def load_json(s3: Any, bucket: str, key: str) -> dict[str, Any] | None:
 def put_json(s3: Any, bucket: str, key: str, payload: Any) -> str:
     """Serialize ``payload`` as UTF-8 JSON and PUT it."""
 
-    if isinstance(payload, (bytes, bytearray)):
+    if isinstance(payload, bytes | bytearray):
         body = bytes(payload)
     elif isinstance(payload, str):
         body = payload.encode("utf-8")
