@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 15:05 IST
+- Completed: feat: Silver compact after retention (scheduled compact + expire)
+- Next candidate: feat: Bronze compact after retention (scheduled compact + expire)
+- Notes: Added hermetic `lakehouse.silver_maintain` + `python -m lakehouse silver-maintain` + `make silver-maintain`. Chains Silver expire then compact so scheduled jobs do not rewrite partitions that retention would delete. Spec snapshot reuses silver-retention + silver-compact fixtures. Also completed the Silver compact live/apply path and restored the truncated lakehouse CLI (bronze-compact / silver-compact / silver-maintain dispatch). Docs in `docs/silver-maintain.md`.
+
 ## 2026-09-01 14:13 IST
 - Completed: feat: Silver object compact / rewrite policy
 - Next candidate: feat: Silver compact after retention (scheduled compact + expire)
