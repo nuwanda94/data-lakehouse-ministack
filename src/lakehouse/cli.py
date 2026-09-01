@@ -163,6 +163,22 @@ def main(argv: list[str] | None = None) -> int:
         help="Delete expired quarantine objects (default is dry-run)",
     )
 
+    p_bret = sub.add_parser(
+        "bronze-retention",
+        help="Plan Bronze raw event expiry (Hive dt vs retention days)",
+    )
+    p_bret.add_argument(
+        "--retention-days",
+        type=int,
+        default=None,
+        help="Override LAKEHOUSE_BRONZE_RETENTION_DAYS (default 30)",
+    )
+    p_bret.add_argument(
+        "--apply",
+        action="store_true",
+        help="Delete expired Bronze objects (default is dry-run)",
+    )
+
     p_stream = sub.add_parser(
         "stream",
         help="Optional Kinesis / Firehose producer into Bronze",
@@ -318,6 +334,16 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.quarantine_retention import describe_quarantine_retention
 
         result = describe_quarantine_retention(
+            retention_days=args.retention_days,
+            apply=args.apply,
+        )
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "bronze-retention":
+        from lakehouse.bronze_retention import describe_bronze_retention
+
+        result = describe_bronze_retention(
             retention_days=args.retention_days,
             apply=args.apply,
         )
