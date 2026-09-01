@@ -242,10 +242,20 @@ def render_html(snapshot: dict[str, Any] | None = None) -> str:
         items = "".join(f"<li>{_esc(item)}</li>" for item in errors)
         error_block = f"<section class='errors'><h2>Warnings</h2><ul>{items}</ul></section>"
 
+    report_table = _rows_table(
+        report_rows,
+        ["run_id", "action", "passed", "rows_scanned", "rows_failed", "report_key"],
+    )
+    check_table = _rows_table(
+        check_rows, ["check_name", "passed", "rows_scanned", "rows_failed"]
+    )
+    reason_table = _rows_table(reason_rows, ["event_id", "reasons"])
+    run_table = _rows_table(runs, ["run_id", "status", "started_at", "error"])
+
     return f"""<!DOCTYPE html>
-<html lang=\"en\">
+<html lang="en">
 <head>
-  <meta charset=\"utf-8\"/>
+  <meta charset="utf-8"/>
   <title>Lakehouse quality dashboard</title>
   <style>
     :root {{ font-family: ui-sans-serif, system-ui, sans-serif; color: #12202a; }}
@@ -262,31 +272,31 @@ def render_html(snapshot: dict[str, Any] | None = None) -> str:
 </head>
 <body>
   <h1>Medallion quality dashboard</h1>
-  <p class=\"meta\">
+  <p class="meta">
     Generated {_esc(data.get('generated_at'))} · backend={_esc(data.get('backend'))} ·
     Silver bucket <code>{_esc(data.get('silver_bucket'))}</code>
   </p>
   {error_block}
   <section>
     <h2>Spec gate (fixture batch)</h2>
-    <p class=\"meta\">
+    <p class="meta">
       action={_esc(spec.get('action'))} · passed={_esc(spec.get('passed'))} ·
       scanned={_esc(spec.get('rows_scanned'))} · failed={_esc(spec.get('rows_failed'))} ·
       fail_ratio={_esc(spec.get('fail_ratio'))}
     </p>
-    {_rows_table(check_rows, ['check_name', 'passed', 'rows_scanned', 'rows_failed'])}
+    {check_table}
   </section>
   <section>
     <h2>Failing fixture rows</h2>
-    {_rows_table(reason_rows, ['event_id', 'reasons'])}
+    {reason_table}
   </section>
   <section>
     <h2>Live quality reports</h2>
-    {_rows_table(report_rows, ['run_id', 'action', 'passed', 'rows_scanned', 'rows_failed', 'report_key'])}
+    {report_table}
   </section>
   <section>
     <h2>Recent pipeline runs</h2>
-    {_rows_table(runs, ['run_id', 'status', 'started_at', 'error'])}
+    {run_table}
   </section>
 </body>
 </html>
