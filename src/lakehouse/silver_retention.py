@@ -1,8 +1,9 @@
 """Silver cleaned-event retention / TTL.
 
 MiniStack CI is hermetic, so this module always evaluates a spec snapshot
-(Silver Hive ``events/event_type=/dt=YYYY-MM-DD`` keys vs a configurable retention
-window) and optionally folds in live S3 objects when MiniStack answers.
+(Silver Hive ``events/event_type=/dt=YYYY-MM-DD`` keys vs a configurable
+retention window) and optionally folds in live S3 objects when MiniStack
+answers.
 
 ``python -m lakehouse silver-retention`` prints JSON. Default is dry-run
 (``apply=false``). Exit code 1 means expired partitions exist and
@@ -132,26 +133,26 @@ def spec_snapshot(
 
     today = as_of or datetime.now(tz=UTC).date()
     budget = resolve_retention_days(retention_days)
+    old = (today - timedelta(days=budget + 5)).isoformat()
+    week = (today - timedelta(days=7)).isoformat()
     fixtures = [
         {
             "dt": today.isoformat(),
             "objects": 12,
-            "key": f"events/event_type=purchase/dt={today.isoformat()}/evt-keep-today.json",
+            "key": (
+                f"events/event_type=purchase/dt={today.isoformat()}/"
+                "evt-keep-today.json"
+            ),
         },
         {
-            "dt": (today - timedelta(days=7)).isoformat(),
+            "dt": week,
             "objects": 8,
-            "key": (
-                "events/event_type=purchase/"
-                f"dt={(today - timedelta(days=7)).isoformat()}/evt-keep-week.json"
-            ),
+            "key": f"events/event_type=purchase/dt={week}/evt-keep-week.json",
         },
         {
-            "dt": (today - timedelta(days=budget + 5)).isoformat(),
+            "dt": old,
             "objects": 3,
-            "key": (
-                f"events/event_type=purchase/dt={(today - timedelta(days=budget + 5)).isoformat()}/evt-expire-old.json"
-            ),
+            "key": f"events/event_type=purchase/dt={old}/evt-expire-old.json",
         },
     ]
     plan = plan_retention(fixtures, as_of=today, retention_days=budget)
