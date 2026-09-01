@@ -147,6 +147,22 @@ def main(argv: list[str] | None = None) -> int:
         help="Delete expired Gold objects (default is dry-run)",
     )
 
+    p_qret = sub.add_parser(
+        "quarantine-retention",
+        help="Plan Silver quarantine TTL expiry (LastModified vs retention days)",
+    )
+    p_qret.add_argument(
+        "--retention-days",
+        type=int,
+        default=None,
+        help="Override LAKEHOUSE_QUARANTINE_RETENTION_DAYS (default 14)",
+    )
+    p_qret.add_argument(
+        "--apply",
+        action="store_true",
+        help="Delete expired quarantine objects (default is dry-run)",
+    )
+
     p_stream = sub.add_parser(
         "stream",
         help="Optional Kinesis / Firehose producer into Bronze",
@@ -292,6 +308,16 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.retention import describe_retention
 
         result = describe_retention(
+            retention_days=args.retention_days,
+            apply=args.apply,
+        )
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "quarantine-retention":
+        from lakehouse.quarantine_retention import describe_quarantine_retention
+
+        result = describe_quarantine_retention(
             retention_days=args.retention_days,
             apply=args.apply,
         )
