@@ -18,6 +18,8 @@ PUBLIC_MODULES = [
     "lakehouse.query_ui",
     "lakehouse.metrics",
     "lakehouse.retention",
+    "lakehouse.bronze_retention",
+    "lakehouse.quarantine_retention",
     "lakehouse.sla",
     "lakehouse.lineage",
     "lakehouse.release",
