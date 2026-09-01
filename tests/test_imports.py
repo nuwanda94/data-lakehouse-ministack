@@ -19,6 +19,7 @@ PUBLIC_MODULES = [
     "lakehouse.metrics",
     "lakehouse.release",
     "lakehouse.security",
+    "lakehouse.storage",
     "lakehouse.cli",
     "lakehouse.seed",
     "lakehouse.seed.generate",
