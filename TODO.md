@@ -48,6 +48,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] ci: Full CI pipeline with MiniStack (P0)
 - [x] ci: Pre-commit + required status checks (P0)
 - [x] feat: Structured metrics (CloudWatch + custom)
+- [x] feat: Data quality dashboard / summary
 - [x] feat: Schema evolution & contract testing
 - [x] feat: Multi-environment support (local / real AWS)
 - [x] chore: Cost & performance notes in README
