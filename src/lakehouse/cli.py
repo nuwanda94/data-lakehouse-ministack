@@ -195,6 +195,28 @@ def main(argv: list[str] | None = None) -> int:
         help="Rewrite fragmented Gold partitions (default is dry-run)",
     )
 
+    p_maintain = sub.add_parser(
+        "maintain",
+        help="Gold expire-then-compact (retention then compact)",
+    )
+    p_maintain.add_argument(
+        "--retention-days",
+        type=int,
+        default=None,
+        help="Override LAKEHOUSE_GOLD_RETENTION_DAYS (default 90)",
+    )
+    p_maintain.add_argument(
+        "--max-objects",
+        type=int,
+        default=None,
+        help="Override LAKEHOUSE_GOLD_COMPACT_MAX_OBJECTS (default 2)",
+    )
+    p_maintain.add_argument(
+        "--apply",
+        action="store_true",
+        help="Expire then compact Gold partitions (default is dry-run)",
+    )
+
     p_bret = sub.add_parser(
         "bronze-retention",
         help="Plan Bronze raw event expiry (Hive dt vs retention days)",
@@ -396,6 +418,17 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.compact import describe_compact
 
         result = describe_compact(
+            max_objects=args.max_objects,
+            apply=args.apply,
+        )
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "maintain":
+        from lakehouse.maintain import describe_maintain
+
+        result = describe_maintain(
+            retention_days=args.retention_days,
             max_objects=args.max_objects,
             apply=args.apply,
         )
