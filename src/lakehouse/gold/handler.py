@@ -3,20 +3,16 @@
 Reads Silver event JSON, runs ``aggregate_gold``, writes one Hive-partitioned
 object per (event_type, day) plus a matching DynamoDB row in the gold-metrics
 table. Pipeline-run metadata lands in DynamoDB so operators can observe the
-batch. Packaging the function as a Terraform Lambda zip remains a later chore.
+batch.
 """
 
 from __future__ import annotations
 
-import json
 import logging
-from datetime import UTC, datetime
 from typing import Any
-from urllib.parse import unquote_plus
 
 from lakehouse.aws import client
 from lakehouse.config import Settings, load_settings
-from lakehouse.ingest.s3_events import extract_object_refs
 from lakehouse.models import CommerceEvent
 from lakehouse.pipeline.gold import gold_key
 from lakehouse.pipeline.idempotency import (
@@ -25,110 +21,13 @@ from lakehouse.pipeline.idempotency import (
     lookup_succeeded,
     replay_result,
 )
-from lakehouse.pipeline.runs import new_run
+from lakehouse.pipeline.runs import complete_run, new_run, persist_run
+from lakehouse.storage import EVENTS_PREFIX, keys_from_event, load_pairs, put_json
 from lakehouse.transforms.events import aggregate_gold
 
 LOGGER = logging.getLogger(__name__)
 
-SILVER_PREFIX = "events/"
-
-
-def _persist_run(
-    ddb: Any,
-    table: str,
-    run: Any,
-    *,
-    metrics: dict[str, int | str],
-    objects: list[str],
-) -> None:
-    item: dict[str, Any] = {
-        "run_id": {"S": run.run_id},
-        "status": {"S": run.status},
-        "started_at": {"S": run.started_at.isoformat()},
-        "zone": {"S": run.zone or "gold"},
-        "object_count": {"N": str(len(objects))},
-        "objects": {"S": json.dumps(objects)},
-        "silver_read": {"N": str(metrics.get("silver_read", 0))},
-        "skipped_invalid": {"N": str(metrics.get("skipped_invalid", 0))},
-        "gold_written": {"N": str(metrics.get("gold_written", 0))},
-        "metrics_written": {"N": str(metrics.get("metrics_written", 0))},
-    }
-    if metrics.get("idempotency_key"):
-        item["idempotency_key"] = {"S": str(metrics["idempotency_key"])}
-        item["metrics"] = {"S": json.dumps(metrics)}
-    if run.finished_at is not None:
-        item["finished_at"] = {"S": run.finished_at.isoformat()}
-    if run.error:
-        item["error"] = {"S": run.error}
-    ddb.put_item(TableName=table, Item=item)
-
-
-def _list_silver_keys(s3: Any, bucket: str, prefix: str = SILVER_PREFIX) -> list[str]:
-    keys: list[str] = []
-    token: str | None = None
-    while True:
-        kwargs: dict[str, Any] = {"Bucket": bucket, "Prefix": prefix}
-        if token:
-            kwargs["ContinuationToken"] = token
-        resp = s3.list_objects_v2(**kwargs)
-        for obj in resp.get("Contents", []) or []:
-            key = obj["Key"]
-            if key.endswith("/"):
-                continue
-            keys.append(key)
-        if not resp.get("IsTruncated"):
-            break
-        token = resp.get("NextContinuationToken")
-    return keys
-
-
-def _load_json(s3: Any, bucket: str, key: str) -> dict[str, Any] | None:
-    try:
-        obj = s3.get_object(Bucket=bucket, Key=key)
-    except Exception as exc:  # noqa: BLE001
-        LOGGER.warning("silver object missing %s/%s: %s", bucket, key, exc)
-        return None
-    body = obj["Body"].read()
-    if isinstance(body, bytes):
-        text = body.decode("utf-8")
-    else:
-        text = str(body)
-    text = text.strip()
-    if not text:
-        return {}
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError:
-        return {"_raw": text}
-    if isinstance(payload, dict):
-        return payload
-    return {"_raw": payload}
-
-
-def _silver_keys_from_event(
-    event: dict[str, Any] | None,
-    *,
-    default_bucket: str,
-    s3: Any,
-) -> tuple[list[tuple[str, str]], list[str]]:
-    """Return (bucket, key) pairs plus skipped keys."""
-
-    if not event:
-        return [(default_bucket, key) for key in _list_silver_keys(s3, default_bucket)], []
-
-    refs = extract_object_refs(event)
-    if not refs:
-        return [(default_bucket, key) for key in _list_silver_keys(s3, default_bucket)], []
-
-    accepted: list[tuple[str, str]] = []
-    skipped: list[str] = []
-    for ref in refs:
-        key = unquote_plus(ref.key)
-        if not key.startswith(SILVER_PREFIX):
-            skipped.append(key)
-            continue
-        accepted.append((ref.bucket or default_bucket, key))
-    return accepted, skipped
+SILVER_PREFIX = EVENTS_PREFIX
 
 
 def _write_gold(
@@ -142,12 +41,7 @@ def _write_gold(
     written: list[str] = []
     for row in rows:
         key = gold_key(metric=str(row["event_type"]), day=str(row["dt"]))
-        s3.put_object(
-            Bucket=gold_bucket,
-            Key=key,
-            Body=json.dumps(row).encode("utf-8"),
-            ContentType="application/json",
-        )
+        put_json(s3, gold_bucket, key, row)
         ddb.put_item(
             TableName=metrics_table,
             Item={
@@ -175,25 +69,19 @@ def transform_gold(
     s3_client = s3 or client("s3", resolved)
     ddb_client = ddb or client("dynamodb", resolved)
 
-    pairs, skipped = _silver_keys_from_event(
-        event, default_bucket=resolved.silver_bucket, s3=s3_client
+    pairs, skipped = keys_from_event(
+        event, default_bucket=resolved.silver_bucket, s3=s3_client, prefix=SILVER_PREFIX
     )
+    payloads, source_keys, missing = load_pairs(s3_client, pairs)
 
     events: list[CommerceEvent] = []
-    source_keys: list[str] = []
-    missing: list[str] = []
     invalid = 0
-    for bucket, key in pairs:
-        payload = _load_json(s3_client, bucket, key)
-        if payload is None:
-            missing.append(f"{bucket}/{key}")
-            continue
-        source_keys.append(key)
+    for key, payload in zip(source_keys, payloads, strict=True):
         try:
             events.append(CommerceEvent.model_validate(payload))
         except Exception:  # noqa: BLE001
             invalid += 1
-            LOGGER.warning("skipping unreadable silver object %s/%s", bucket, key)
+            LOGGER.warning("skipping unreadable silver object %s", key)
 
     fingerprint = [*source_keys, *[f"missing:{m}" for m in missing]]
     run_id = deterministic_run_id("gold", *fingerprint) if fingerprint else None
@@ -222,7 +110,7 @@ def transform_gold(
         rows=rows,
     )
 
-    metrics: dict[str, int | str] = {
+    metrics: dict[str, int | float | str] = {
         "silver_read": len(events),
         "skipped_invalid": invalid,
         "gold_written": len(gold_keys),
@@ -232,18 +120,16 @@ def transform_gold(
         metrics["idempotency_key"] = key
 
     if missing and not source_keys:
-        run.status = "failed"
-        run.error = f"missing silver objects: {', '.join(missing)}"
+        complete_run(
+            run,
+            status="failed",
+            error=f"missing silver objects: {', '.join(missing)}",
+            objects=source_keys,
+            metrics=metrics,
+        )
     else:
-        run.status = "succeeded"
-    run.finished_at = datetime.now(tz=UTC)
-    _persist_run(
-        ddb_client,
-        resolved.pipeline_runs_table,
-        run,
-        metrics=metrics,
-        objects=source_keys,
-    )
+        complete_run(run, status="succeeded", objects=source_keys, metrics=metrics)
+    persist_run(ddb_client, resolved.pipeline_runs_table, run)
 
     return {
         "run_id": run.run_id,
