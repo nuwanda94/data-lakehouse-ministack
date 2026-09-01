@@ -100,6 +100,16 @@ def main(argv: list[str] | None = None) -> int:
     p_ui.add_argument("--host", default="127.0.0.1")
     p_ui.add_argument("--port", type=int, default=8765)
 
+    p_qdash = sub.add_parser(
+        "quality-dashboard",
+        help="Render the Silver quality-gate dashboard (HTML + named checks)",
+    )
+    p_qdash.add_argument(
+        "--out",
+        default=None,
+        help="Write a self-contained HTML dashboard to this path",
+    )
+
     p_stream = sub.add_parser(
         "stream",
         help="Optional Kinesis / Firehose producer into Bronze",
@@ -218,6 +228,13 @@ def main(argv: list[str] | None = None) -> int:
 
         result = run_demo(count=args.count, mode=args.mode)
         print(json.dumps(result, indent=2, default=str))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "quality-dashboard":
+        from lakehouse.quality.dashboard import describe_dashboard
+
+        result = describe_dashboard(out=args.out)
+        print(json.dumps(result, indent=2))
         return 0 if result.get("ok") else 1
 
     if args.command == "ui":
