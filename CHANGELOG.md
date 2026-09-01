@@ -26,6 +26,8 @@ How to cut a release: [`docs/release.md`](docs/release.md).
 - Gold compact-after-retention (`python -m lakehouse maintain`, `make maintain`).
 - Bronze raw-object compact (`python -m lakehouse bronze-compact`,
   `make bronze-compact`).
+- Silver cleaned-event compact (`python -m lakehouse silver-compact`,
+  `make silver-compact`).
 
 ## [0.1.0] - 2026-09-01
 
