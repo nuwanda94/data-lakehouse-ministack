@@ -110,6 +110,16 @@ def main(argv: list[str] | None = None) -> int:
         help="Write a self-contained HTML dashboard to this path",
     )
 
+    p_lineage = sub.add_parser(
+        "lineage",
+        help="Describe Bronze → Silver → quality → Gold dataset lineage",
+    )
+    p_lineage.add_argument(
+        "--out",
+        default=None,
+        help="Write a Mermaid flowchart to this path",
+    )
+
     p_stream = sub.add_parser(
         "stream",
         help="Optional Kinesis / Firehose producer into Bronze",
@@ -234,6 +244,13 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.quality.dashboard import describe_dashboard
 
         result = describe_dashboard(out=args.out)
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "lineage":
+        from lakehouse.lineage import describe_lineage
+
+        result = describe_lineage(out=args.out)
         print(json.dumps(result, indent=2))
         return 0 if result.get("ok") else 1
 
