@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 18:22 IST
+- Completed: chore: quarantine compact-after-retention
+- Next candidate: chore: include quarantine in platform-maintain
+- Notes: Restored the truncated `lakehouse.cli` dispatch required by unit tests and wired `quarantine-compact` + `quarantine-maintain`. Scheduled path expires Silver quarantine TTL first, then rewrites fragmented `reason=` prefixes. Hermetic spec fixtures reuse quarantine-retention + quarantine-compact. Docs in `docs/quarantine-maintain.md` and `docs/quarantine-compact.md`.
+
 ## 2026-09-01 17:05 IST
 - Completed: chore: platform-maintain (Bronze + Silver + Gold expire-then-compact)
 - Next candidate: chore: quarantine compact-after-retention

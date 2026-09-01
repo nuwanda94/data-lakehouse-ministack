@@ -28,6 +28,8 @@ PUBLIC_MODULES = [
     "lakehouse.maintain",
     "lakehouse.platform_maintain",
     "lakehouse.quarantine_retention",
+    "lakehouse.quarantine_compact",
+    "lakehouse.quarantine_maintain",
     "lakehouse.sla",
     "lakehouse.lineage",
     "lakehouse.release",

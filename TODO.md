@@ -80,6 +80,8 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Silver compact after retention (scheduled compact + expire)
 - [x] feat: Bronze compact after retention (scheduled compact + expire)
 - [x] chore: platform-maintain (Bronze + Silver + Gold expire-then-compact)
+- [x] feat: Silver quarantine compact / rewrite policy
+- [x] chore: quarantine compact-after-retention
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).
