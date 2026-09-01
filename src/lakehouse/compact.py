@@ -194,7 +194,7 @@ def merge_metric_payloads(payloads: list[Any]) -> dict[str, Any]:
     dt: str | None = None
     sources = 0
     for payload in payloads:
-        if isinstance(payload, (bytes, bytearray, str)):
+        if isinstance(payload, bytes | bytearray | str):
             try:
                 payload = json.loads(payload)
             except json.JSONDecodeError:
