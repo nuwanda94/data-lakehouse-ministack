@@ -20,6 +20,8 @@ PUBLIC_MODULES = [
     "lakehouse.retention",
     "lakehouse.bronze_retention",
     "lakehouse.silver_retention",
+    "lakehouse.bronze_compact",
+    "lakehouse.silver_compact",
     "lakehouse.compact",
     "lakehouse.maintain",
     "lakehouse.quarantine_retention",
