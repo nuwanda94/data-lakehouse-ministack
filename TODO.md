@@ -72,6 +72,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Gold retention / partition expiry policy
 - [x] feat: Silver quarantine retention / TTL
 - [x] feat: Bronze raw object retention / TTL
+- [x] feat: Silver cleaned-event retention / TTL
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).
