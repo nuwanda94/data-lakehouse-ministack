@@ -14,7 +14,7 @@ from typing import Any
 
 from lakehouse.aws import client
 from lakehouse.config import Settings, load_settings
-from lakehouse.gold.handler import _load_json, _write_gold
+from lakehouse.gold.handler import _write_gold
 from lakehouse.models import CommerceEvent
 from lakehouse.pipeline.idempotency import deterministic_run_id, idempotency_key
 from lakehouse.pipeline.late import (
@@ -24,28 +24,10 @@ from lakehouse.pipeline.late import (
     window_bounds,
 )
 from lakehouse.pipeline.runs import new_run
+from lakehouse.storage import list_keys, load_json
 from lakehouse.transforms.events import aggregate_gold
 
 SILVER_PREFIX = "events/"
-
-
-def _list_keys(s3: Any, bucket: str, prefix: str = SILVER_PREFIX) -> list[str]:
-    keys: list[str] = []
-    token: str | None = None
-    while True:
-        kwargs: dict[str, Any] = {"Bucket": bucket, "Prefix": prefix}
-        if token:
-            kwargs["ContinuationToken"] = token
-        resp = s3.list_objects_v2(**kwargs)
-        for obj in resp.get("Contents", []) or []:
-            key = obj["Key"]
-            if key.endswith("/"):
-                continue
-            keys.append(key)
-        if not resp.get("IsTruncated"):
-            break
-        token = resp.get("NextContinuationToken")
-    return keys
 
 
 def reprocess_gold_window(
@@ -64,14 +46,14 @@ def reprocess_gold_window(
     s3_client = s3 or client("s3", resolved)
     ddb_client = ddb or client("dynamodb", resolved)
 
-    all_keys = _list_keys(s3_client, resolved.silver_bucket)
+    all_keys = list_keys(s3_client, resolved.silver_bucket)
     window_keys = [key for key in all_keys if key_in_window(key, start=start, end=end)]
 
     events: list[CommerceEvent] = []
     invalid = 0
     late_flagged = 0
     for key in window_keys:
-        payload = _load_json(s3_client, resolved.silver_bucket, key)
+        payload = load_json(s3_client, resolved.silver_bucket, key)
         if payload is None:
             invalid += 1
             continue
