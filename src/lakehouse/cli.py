@@ -179,6 +179,22 @@ def main(argv: list[str] | None = None) -> int:
         help="Delete expired Silver cleaned events (default is dry-run)",
     )
 
+    p_compact = sub.add_parser(
+        "compact",
+        help="Plan Gold metric-object compact / rewrite (objects vs max)",
+    )
+    p_compact.add_argument(
+        "--max-objects",
+        type=int,
+        default=None,
+        help="Override LAKEHOUSE_GOLD_COMPACT_MAX_OBJECTS (default 2)",
+    )
+    p_compact.add_argument(
+        "--apply",
+        action="store_true",
+        help="Rewrite fragmented Gold partitions (default is dry-run)",
+    )
+
     p_bret = sub.add_parser(
         "bronze-retention",
         help="Plan Bronze raw event expiry (Hive dt vs retention days)",
@@ -371,6 +387,16 @@ def main(argv: list[str] | None = None) -> int:
 
         result = describe_bronze_retention(
             retention_days=args.retention_days,
+            apply=args.apply,
+        )
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "compact":
+        from lakehouse.compact import describe_compact
+
+        result = describe_compact(
+            max_objects=args.max_objects,
             apply=args.apply,
         )
         print(json.dumps(result, indent=2))
