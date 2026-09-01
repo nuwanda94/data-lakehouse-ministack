@@ -21,14 +21,14 @@ from lakehouse.compact import (
     DEFAULT_MAX_OBJECTS,
     describe_compact,
     resolve_max_objects,
-    spec_snapshot as compact_spec,
 )
+from lakehouse.compact import spec_snapshot as compact_spec
 from lakehouse.retention import (
     DEFAULT_RETENTION_DAYS,
     describe_retention,
     resolve_retention_days,
-    spec_snapshot as retention_spec,
 )
+from lakehouse.retention import spec_snapshot as retention_spec
 
 DATASET_ID = "gold.daily_metrics"
 JOB = "gold.maintain"
