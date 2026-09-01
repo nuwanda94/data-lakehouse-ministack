@@ -13,7 +13,8 @@ How to cut a release: [`docs/release.md`](docs/release.md).
 
 - Optional Kinesis / Firehose streaming path (`python -m lakehouse stream`,
   `make stream`, gated Terraform in `infra/terraform/streaming.tf`).
-- Shared-library extract across zone handlers (Phase 5 P2, not started).
+- Shared-library extract across zone handlers (`lakehouse.storage`).
+- Dataset lineage snapshot (`python -m lakehouse lineage`, `make lineage`).
 
 ## [0.1.0] - 2026-09-01
 
