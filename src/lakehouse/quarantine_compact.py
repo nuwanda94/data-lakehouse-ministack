@@ -127,7 +127,9 @@ def spec_snapshot(*, max_objects: int | None = None) -> dict[str, Any]:
         {
             "reason": "poison",
             "objects": budget + 2,
-            "keys": [f"quarantine/reason=poison/evt-{i:03d}.json" for i in range(budget + 2)],
+            "keys": [
+                f"quarantine/reason=poison/evt-{i:03d}.json" for i in range(budget + 2)
+            ],
         },
     ]
     plan = plan_compact(fixtures, max_objects=budget)
@@ -138,4 +140,165 @@ def spec_snapshot(*, max_objects: int | None = None) -> dict[str, Any]:
         "rewritten": [],
         "deleted": [],
         **plan,
+    }
+
+
+def _live_quarantine_prefixes(settings: Settings) -> list[dict[str, Any]]:
+    try:
+        from lakehouse.aws import client
+        from lakehouse.storage import list_keys
+
+        s3 = client("s3", settings)
+        keys = list_keys(s3, settings.silver_bucket, PREFIX)
+        buckets: dict[str, dict[str, Any]] = {}
+        for key in keys:
+            reason = parse_quarantine_key(key).get("reason") or "unknown"
+            row = buckets.setdefault(
+                str(reason),
+                {"reason": str(reason), "objects": 0, "keys": []},
+            )
+            row["objects"] = int(row["objects"]) + 1
+            row["keys"].append(key)
+        return list(buckets.values())
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def merge_quarantine_payloads(payloads: list[Any]) -> dict[str, Any]:
+    """Fold small quarantine JSONs into one rewrite payload."""
+
+    events: list[dict[str, Any]] = []
+    sources = 0
+    reason: str | None = None
+    for payload in payloads:
+        if isinstance(payload, bytes | bytearray | str):
+            try:
+                payload = json.loads(payload)
+            except json.JSONDecodeError:
+                sources += 1
+                continue
+        sources += 1
+        if isinstance(payload, list):
+            for item in payload:
+                if isinstance(item, dict):
+                    events.append(item)
+                    reason = str(item.get("reason") or reason or "")
+            continue
+        if not isinstance(payload, dict):
+            continue
+        nested = payload.get("events") or payload.get("rejected")
+        if isinstance(nested, list):
+            for item in nested:
+                if isinstance(item, dict):
+                    events.append(item)
+            reason = str(payload.get("reason") or reason or "")
+            continue
+        events.append(payload)
+        reason = str(payload.get("reason") or reason or "")
+    return {
+        "reason": reason or "",
+        "record_count": len(events),
+        "compacted_from": sources,
+        "events": events,
+    }
+
+
+def _rewrite_prefix(
+    settings: Settings,
+    row: dict[str, Any],
+) -> tuple[str | None, list[str], str | None]:
+    """Write the compact object and delete sibling keys."""
+
+    try:
+        from lakehouse.aws import client
+        from lakehouse.storage import put_json
+
+        s3 = client("s3", settings)
+        keys = list(row.get("keys") or [])
+        payloads: list[Any] = []
+        for key in keys:
+            try:
+                obj = s3.get_object(Bucket=settings.silver_bucket, Key=key)
+                payloads.append(obj["Body"].read())
+            except Exception:  # noqa: BLE001
+                continue
+        merged = merge_quarantine_payloads(payloads)
+        merged["reason"] = str(row.get("reason") or merged.get("reason") or "")
+        target = str(
+            row.get("target") or compact_key(reason=str(row.get("reason") or "unknown"))
+        )
+        put_json(s3, settings.silver_bucket, target, merged)
+        deleted: list[str] = []
+        for key in keys:
+            if key == target:
+                continue
+            s3.delete_object(Bucket=settings.silver_bucket, Key=key)
+            deleted.append(key)
+        return target, deleted, None
+    except Exception as exc:  # noqa: BLE001
+        return None, [], str(exc)
+
+
+def collect_snapshot(
+    settings: Settings | None = None,
+    *,
+    max_objects: int | None = None,
+    apply: bool = False,
+) -> dict[str, Any]:
+    """Spec plan plus a live quarantine plan when MiniStack answers."""
+
+    spec = spec_snapshot(max_objects=max_objects)
+    try:
+        resolved = settings or load_settings()
+    except Exception:  # noqa: BLE001
+        return spec
+    if not _endpoint_reachable(resolved.aws_endpoint_url):
+        return spec
+
+    live_parts = _live_quarantine_prefixes(resolved)
+    if not live_parts:
+        return spec
+
+    plan = plan_compact(live_parts, max_objects=max_objects)
+    rewritten: list[str] = []
+    deleted: list[str] = []
+    errors: list[str] = []
+    if apply and plan["compact"]:
+        for row in plan["compact"]:
+            target, gone, err = _rewrite_prefix(resolved, row)
+            if target:
+                rewritten.append(target)
+            deleted.extend(gone)
+            if err:
+                errors.append(f"{row.get('reason')}: {err}")
+    return {
+        "backend": "live",
+        "generated_at": datetime.now(tz=UTC).isoformat(),
+        "apply": apply,
+        "rewritten": rewritten,
+        "deleted": deleted,
+        "errors": errors,
+        "spec": spec,
+        **plan,
+        "ok": not errors,
+    }
+
+
+def describe_quarantine_compact(
+    *,
+    max_objects: int | None = None,
+    apply: bool = False,
+) -> dict[str, Any]:
+    snap = collect_snapshot(max_objects=max_objects, apply=apply)
+    return {
+        "ok": bool(snap.get("ok")),
+        "backend": snap.get("backend"),
+        "dataset": snap.get("dataset", DATASET_ID),
+        "max_objects": snap.get("max_objects"),
+        "keep_count": snap.get("keep_count"),
+        "compact_count": snap.get("compact_count"),
+        "apply": snap.get("apply", False),
+        "rewritten_count": len(list(snap.get("rewritten") or [])),
+        "deleted_count": len(list(snap.get("deleted") or [])),
+        "compact": snap.get("compact") or [],
     }
