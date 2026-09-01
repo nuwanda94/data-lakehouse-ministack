@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 10:05 IST
+- Completed: feat: Bronze raw object retention / TTL
+- Next candidate: feat: Silver cleaned-event retention / TTL
+- Notes: Added hermetic `lakehouse.bronze_retention` + `python -m lakehouse bronze-retention` + `make bronze-retention`. Spec snapshot keeps two recent Bronze `events/dt=` partitions and expires one older than the budget. Live MiniStack discovers Hive `events/dt=` keys in the Bronze bucket. Default budget is `LAKEHOUSE_BRONZE_RETENTION_DAYS` (30) or `--retention-days`. `--apply` deletes expired objects; dry-run is the default. Docs in `docs/bronze-retention.md`.
+
 ## 2026-09-01 09:05 IST
 - Completed: feat: Silver quarantine retention / TTL
 - Next candidate: feat: Bronze raw object retention / TTL
