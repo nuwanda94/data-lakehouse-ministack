@@ -16,6 +16,9 @@ How to cut a release: [`docs/release.md`](docs/release.md).
 - Shared-library extract across zone handlers (`lakehouse.storage`).
 - Dataset lineage snapshot (`python -m lakehouse lineage`, `make lineage`).
 - Gold freshness SLA (`python -m lakehouse sla`, `make sla`).
+- Gold partition retention (`python -m lakehouse retention`, `make retention`).
+- Silver quarantine TTL (`python -m lakehouse quarantine-retention`,
+  `make quarantine-retention`).
 
 ## [0.1.0] - 2026-09-01
 

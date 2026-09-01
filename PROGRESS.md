@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 09:05 IST
+- Completed: feat: Silver quarantine retention / TTL
+- Next candidate: feat: Bronze raw object retention / TTL
+- Notes: Added hermetic `lakehouse.quarantine_retention` + `python -m lakehouse quarantine-retention` + `make quarantine-retention`. Spec snapshot keeps two recent quarantine objects and expires one poison row older than the budget. Live MiniStack lists Silver `quarantine/` keys by LastModified. Default budget is `LAKEHOUSE_QUARANTINE_RETENTION_DAYS` (14) or `--retention-days`. `--apply` deletes expired objects; dry-run is the default. Docs in `docs/quarantine-retention.md`.
+
 ## 2026-09-01 08:13 IST
 - Completed: feat: Gold retention / partition expiry policy
 - Next candidate: feat: Silver quarantine retention / TTL

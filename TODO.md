@@ -70,6 +70,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Dataset lineage snapshot (Bronze → Silver → quality → Gold)
 - [x] feat: Gold freshness SLA (last-written vs max-age hours)
 - [x] feat: Gold retention / partition expiry policy
+- [x] feat: Silver quarantine retention / TTL
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).
