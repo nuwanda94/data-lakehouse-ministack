@@ -139,10 +139,7 @@ def spec_snapshot(
         {
             "dt": today.isoformat(),
             "objects": 12,
-            "key": (
-                f"events/event_type=purchase/dt={today.isoformat()}/"
-                "evt-keep-today.json"
-            ),
+            "key": (f"events/event_type=purchase/dt={today.isoformat()}/" "evt-keep-today.json"),
         },
         {
             "dt": week,
