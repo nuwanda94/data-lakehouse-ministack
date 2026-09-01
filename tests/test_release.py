@@ -11,7 +11,6 @@ from lakehouse.release import (
     repo_root,
 )
 
-
 CHANGELOG = """# Changelog
 
 ## [Unreleased]
