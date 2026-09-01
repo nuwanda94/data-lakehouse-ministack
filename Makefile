@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality quality-dashboard gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess lineage sla retention quarantine-retention bronze-retention silver-retention test test-integration ci lint pre-commit security clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality quality-dashboard gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess lineage sla retention quarantine-retention bronze-retention silver-retention compact test test-integration ci lint pre-commit security clean
 
 help:
 	@printf '%s\n' \
@@ -49,6 +49,7 @@ help:
 	  '  make quarantine-retention plan Silver quarantine TTL (dry-run)' \
 	  '  make bronze-retention plan Bronze raw event expiry (dry-run)' \
 	  '  make silver-retention plan Silver cleaned-event expiry (dry-run)' \
+	  '  make compact    plan Gold metric-object compact / rewrite (dry-run)' \
 	  '  make demo      seed → pipeline → query with assertions' \
 	  '  make runs      list pipeline run metadata from DynamoDB' \
 	  '  make reprocess rebuild Gold for LOOKBACK_DAYS (late arrivals)' \
@@ -171,6 +172,10 @@ bronze-retention:
 
 silver-retention:
 	@$(PYTHON) -m lakehouse silver-retention $(if $(SILVER_RETENTION_DAYS),--retention-days $(SILVER_RETENTION_DAYS),)
+
+GOLD_COMPACT_MAX_OBJECTS ?=
+compact:
+	@$(PYTHON) -m lakehouse compact $(if $(GOLD_COMPACT_MAX_OBJECTS),--max-objects $(GOLD_COMPACT_MAX_OBJECTS),)
 
 demo:
 	@bash $(ROOT)/scripts/wait_healthy.sh
