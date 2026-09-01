@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 17:05 IST
+- Completed: chore: platform-maintain (Bronze + Silver + Gold expire-then-compact)
+- Next candidate: chore: quarantine compact-after-retention
+- Notes: Added hermetic `lakehouse.platform_maintain` + `python -m lakehouse platform-maintain` + `make platform-maintain`. Chains Bronze, Silver, then Gold expire-then-compact so a single scheduled job covers every zone. Restored truncated CLI dispatch (all retain/compact/maintain + prior commands) and completed the Silver compact live/apply path required by zone maintain. Docs in `docs/platform-maintain.md`.
+
 ## 2026-09-01 16:00 IST
 - Completed: feat: Bronze compact after retention (scheduled compact + expire)
 - Next candidate: chore: platform-maintain (Bronze + Silver + Gold expire-then-compact)
