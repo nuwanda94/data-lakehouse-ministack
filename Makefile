@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality quality-dashboard gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess lineage sla retention quarantine-retention bronze-retention bronze-compact silver-retention compact maintain test test-integration ci lint pre-commit security clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality quality-dashboard gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess lineage sla retention quarantine-retention bronze-retention bronze-compact bronze-maintain silver-retention silver-compact silver-maintain compact maintain platform-maintain test test-integration ci lint pre-commit security clean
 
 help:
 	@printf '%s\n' \
@@ -51,7 +51,11 @@ help:
 	  '  make bronze-compact plan Bronze raw-object compact / rewrite (dry-run)' \
 	  '  make silver-retention plan Silver cleaned-event expiry (dry-run)' \
 	  '  make compact    plan Gold metric-object compact / rewrite (dry-run)' \
+	  '  make bronze-maintain Bronze expire-then-compact (dry-run)' \
+	  '  make silver-compact plan Silver object compact / rewrite (dry-run)' \
+	  '  make silver-maintain Silver expire-then-compact (dry-run)' \
 	  '  make maintain   Gold expire-then-compact (dry-run)' \
+	  '  make platform-maintain Bronze+Silver+Gold expire-then-compact (dry-run)' \
 	  '  make demo      seed → pipeline → query with assertions' \
 	  '  make runs      list pipeline run metadata from DynamoDB' \
 	  '  make reprocess rebuild Gold for LOOKBACK_DAYS (late arrivals)' \
@@ -183,8 +187,21 @@ GOLD_COMPACT_MAX_OBJECTS ?=
 compact:
 	@$(PYTHON) -m lakehouse compact $(if $(GOLD_COMPACT_MAX_OBJECTS),--max-objects $(GOLD_COMPACT_MAX_OBJECTS),)
 
+bronze-maintain:
+	@$(PYTHON) -m lakehouse bronze-maintain $(if $(BRONZE_RETENTION_DAYS),--retention-days $(BRONZE_RETENTION_DAYS),) $(if $(BRONZE_COMPACT_MAX_OBJECTS),--max-objects $(BRONZE_COMPACT_MAX_OBJECTS),)
+
+SILVER_COMPACT_MAX_OBJECTS ?=
+silver-compact:
+	@$(PYTHON) -m lakehouse silver-compact $(if $(SILVER_COMPACT_MAX_OBJECTS),--max-objects $(SILVER_COMPACT_MAX_OBJECTS),)
+
+silver-maintain:
+	@$(PYTHON) -m lakehouse silver-maintain $(if $(SILVER_RETENTION_DAYS),--retention-days $(SILVER_RETENTION_DAYS),) $(if $(SILVER_COMPACT_MAX_OBJECTS),--max-objects $(SILVER_COMPACT_MAX_OBJECTS),)
+
 maintain:
 	@$(PYTHON) -m lakehouse maintain $(if $(RETENTION_DAYS),--retention-days $(RETENTION_DAYS),) $(if $(GOLD_COMPACT_MAX_OBJECTS),--max-objects $(GOLD_COMPACT_MAX_OBJECTS),)
+
+platform-maintain:
+	@$(PYTHON) -m lakehouse platform-maintain
 
 demo:
 	@bash $(ROOT)/scripts/wait_healthy.sh
