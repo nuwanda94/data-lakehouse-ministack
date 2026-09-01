@@ -246,9 +246,7 @@ def render_html(snapshot: dict[str, Any] | None = None) -> str:
         report_rows,
         ["run_id", "action", "passed", "rows_scanned", "rows_failed", "report_key"],
     )
-    check_table = _rows_table(
-        check_rows, ["check_name", "passed", "rows_scanned", "rows_failed"]
-    )
+    check_table = _rows_table(check_rows, ["check_name", "passed", "rows_scanned", "rows_failed"])
     reason_table = _rows_table(reason_rows, ["event_id", "reasons"])
     run_table = _rows_table(runs, ["run_id", "status", "started_at", "error"])
 
