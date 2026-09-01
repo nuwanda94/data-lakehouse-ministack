@@ -163,6 +163,22 @@ def main(argv: list[str] | None = None) -> int:
         help="Delete expired quarantine objects (default is dry-run)",
     )
 
+    p_sret = sub.add_parser(
+        "silver-retention",
+        help="Plan Silver cleaned-event expiry (Hive dt vs retention days)",
+    )
+    p_sret.add_argument(
+        "--retention-days",
+        type=int,
+        default=None,
+        help="Override LAKEHOUSE_SILVER_RETENTION_DAYS (default 60)",
+    )
+    p_sret.add_argument(
+        "--apply",
+        action="store_true",
+        help="Delete expired Silver cleaned events (default is dry-run)",
+    )
+
     p_bret = sub.add_parser(
         "bronze-retention",
         help="Plan Bronze raw event expiry (Hive dt vs retention days)",
@@ -334,6 +350,16 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.quarantine_retention import describe_quarantine_retention
 
         result = describe_quarantine_retention(
+            retention_days=args.retention_days,
+            apply=args.apply,
+        )
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "silver-retention":
+        from lakehouse.silver_retention import describe_silver_retention
+
+        result = describe_silver_retention(
             retention_days=args.retention_days,
             apply=args.apply,
         )
