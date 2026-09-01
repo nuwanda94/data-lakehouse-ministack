@@ -40,6 +40,7 @@ PUBLIC_MODULES = [
     "lakehouse.quality",
     "lakehouse.quality.gate",
     "lakehouse.quality.handler",
+    "lakehouse.quality.dashboard",
     "lakehouse.orchestration",
     "lakehouse.orchestration.sfn",
     "lakehouse.ops",
