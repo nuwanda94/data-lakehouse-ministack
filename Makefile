@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality quality-dashboard gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess lineage sla retention test test-integration ci lint pre-commit security clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality quality-dashboard gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess lineage sla retention quarantine-retention test test-integration ci lint pre-commit security clean
 
 help:
 	@printf '%s\n' \
@@ -46,6 +46,7 @@ help:
 	  '  make lineage   write build/lineage.mmd (zone graph)' \
 	  '  make sla       evaluate Gold freshness SLA' \
 	  '  make retention plan Gold partition expiry (dry-run)' \
+	  '  make quarantine-retention plan Silver quarantine TTL (dry-run)' \
 	  '  make demo      seed → pipeline → query with assertions' \
 	  '  make runs      list pipeline run metadata from DynamoDB' \
 	  '  make reprocess rebuild Gold for LOOKBACK_DAYS (late arrivals)' \
@@ -159,6 +160,9 @@ sla:
 RETENTION_DAYS ?=
 retention:
 	@$(PYTHON) -m lakehouse retention $(if $(RETENTION_DAYS),--retention-days $(RETENTION_DAYS),)
+
+quarantine-retention:
+	@$(PYTHON) -m lakehouse quarantine-retention $(if $(QUARANTINE_RETENTION_DAYS),--retention-days $(QUARANTINE_RETENTION_DAYS),)
 
 demo:
 	@bash $(ROOT)/scripts/wait_healthy.sh
