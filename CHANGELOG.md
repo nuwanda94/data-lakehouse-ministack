@@ -30,6 +30,8 @@ How to cut a release: [`docs/release.md`](docs/release.md).
   `make silver-compact`).
 - Silver compact-after-retention (`python -m lakehouse silver-maintain`,
   `make silver-maintain`).
+- Platform compact-after-retention (`python -m lakehouse platform-maintain`,
+  `make platform-maintain`).
 
 ## [0.1.0] - 2026-09-01
 
