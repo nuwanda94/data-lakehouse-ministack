@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 13:00 IST
+- Completed: feat: Gold compact after retention (scheduled compact + expire)
+- Next candidate: feat: Bronze object compact / rewrite policy
+- Notes: Added hermetic `lakehouse.maintain` + `python -m lakehouse maintain` + `make maintain`. Chains Gold expire then compact so scheduled jobs do not rewrite partitions that retention would delete. Spec snapshot reuses retention + compact fixtures. Live MiniStack runs both describe paths. `--apply` is forwarded. Docs in `docs/maintain.md`.
+
 ## 2026-09-01 12:00 IST
 - Completed: feat: Gold metric-object compact / rewrite policy
 - Next candidate: feat: Gold compact after retention (scheduled compact + expire)

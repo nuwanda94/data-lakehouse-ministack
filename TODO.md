@@ -74,6 +74,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Bronze raw object retention / TTL
 - [x] feat: Silver cleaned-event retention / TTL
 - [x] feat: Gold metric-object compact / rewrite policy
+- [x] feat: Gold compact after retention (scheduled compact + expire)
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).

@@ -21,6 +21,7 @@ PUBLIC_MODULES = [
     "lakehouse.bronze_retention",
     "lakehouse.silver_retention",
     "lakehouse.compact",
+    "lakehouse.maintain",
     "lakehouse.quarantine_retention",
     "lakehouse.sla",
     "lakehouse.lineage",
