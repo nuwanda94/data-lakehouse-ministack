@@ -8,15 +8,10 @@ DynamoDB so the Gold step and operators can observe the batch.
 
 from __future__ import annotations
 
-import json
-import logging
-from datetime import UTC, datetime
 from typing import Any
-from urllib.parse import unquote_plus
 
 from lakehouse.aws import client
 from lakehouse.config import Settings, load_settings
-from lakehouse.ingest.s3_events import extract_object_refs
 from lakehouse.pipeline.idempotency import (
     deterministic_run_id,
     idempotency_key,
@@ -24,86 +19,12 @@ from lakehouse.pipeline.idempotency import (
     replay_result,
 )
 from lakehouse.pipeline.late import lookback_delta, watermark_from_event
-from lakehouse.pipeline.runs import new_run
+from lakehouse.pipeline.runs import complete_run, new_run, persist_run
 from lakehouse.pipeline.silver import quarantine_key, silver_key
+from lakehouse.storage import EVENTS_PREFIX, keys_from_event, load_pairs, put_json
 from lakehouse.transforms.events import SilverBatch, cleanse_to_silver
 
-LOGGER = logging.getLogger(__name__)
-
-BRONZE_PREFIX = "events/"
-
-
-def _persist_run(
-    ddb: Any,
-    table: str,
-    run: Any,
-    *,
-    metrics: dict[str, int | str],
-    objects: list[str],
-) -> None:
-    item: dict[str, Any] = {
-        "run_id": {"S": run.run_id},
-        "status": {"S": run.status},
-        "started_at": {"S": run.started_at.isoformat()},
-        "zone": {"S": run.zone or "silver"},
-        "object_count": {"N": str(len(objects))},
-        "objects": {"S": json.dumps(objects)},
-        "valid": {"N": str(metrics.get("valid", 0))},
-        "quarantined": {"N": str(metrics.get("quarantined", 0))},
-        "late": {"N": str(metrics.get("late", 0))},
-        "silver_written": {"N": str(metrics.get("silver_written", 0))},
-        "quarantine_written": {"N": str(metrics.get("quarantine_written", 0))},
-    }
-    if metrics.get("idempotency_key"):
-        item["idempotency_key"] = {"S": str(metrics["idempotency_key"])}
-        item["metrics"] = {"S": json.dumps(metrics)}
-    if run.finished_at is not None:
-        item["finished_at"] = {"S": run.finished_at.isoformat()}
-    if run.error:
-        item["error"] = {"S": run.error}
-    ddb.put_item(TableName=table, Item=item)
-
-
-def _list_bronze_keys(s3: Any, bucket: str, prefix: str = BRONZE_PREFIX) -> list[str]:
-    keys: list[str] = []
-    token: str | None = None
-    while True:
-        kwargs: dict[str, Any] = {"Bucket": bucket, "Prefix": prefix}
-        if token:
-            kwargs["ContinuationToken"] = token
-        resp = s3.list_objects_v2(**kwargs)
-        for obj in resp.get("Contents", []) or []:
-            key = obj["Key"]
-            if key.endswith("/"):
-                continue
-            keys.append(key)
-        if not resp.get("IsTruncated"):
-            break
-        token = resp.get("NextContinuationToken")
-    return keys
-
-
-def _load_json(s3: Any, bucket: str, key: str) -> dict[str, Any] | None:
-    try:
-        obj = s3.get_object(Bucket=bucket, Key=key)
-    except Exception as exc:  # noqa: BLE001
-        LOGGER.warning("bronze object missing %s/%s: %s", bucket, key, exc)
-        return None
-    body = obj["Body"].read()
-    if isinstance(body, bytes):
-        text = body.decode("utf-8")
-    else:
-        text = str(body)
-    text = text.strip()
-    if not text:
-        return {}
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError:
-        return {"_raw": text, "event_id": ""}
-    if isinstance(payload, dict):
-        return payload
-    return {"_raw": payload, "event_id": ""}
+BRONZE_PREFIX = EVENTS_PREFIX
 
 
 def _write_silver(s3: Any, bucket: str, batch: SilverBatch) -> tuple[list[str], list[str]]:
@@ -113,50 +34,13 @@ def _write_silver(s3: Any, bucket: str, batch: SilverBatch) -> tuple[list[str], 
         key = silver_key(event)
         payload = event.model_dump(mode="json")
         payload["_late"] = event in batch.late
-        s3.put_object(
-            Bucket=bucket,
-            Key=key,
-            Body=json.dumps(payload).encode("utf-8"),
-            ContentType="application/json",
-        )
+        put_json(s3, bucket, key, payload)
         silver_keys.append(key)
     for row in batch.quarantined:
         key = quarantine_key(row)
-        body = json.dumps({"reason": row.reason, "payload": row.payload})
-        s3.put_object(
-            Bucket=bucket,
-            Key=key,
-            Body=body.encode("utf-8"),
-            ContentType="application/json",
-        )
+        put_json(s3, bucket, key, {"reason": row.reason, "payload": row.payload})
         quarantine_keys.append(key)
     return silver_keys, quarantine_keys
-
-
-def _bronze_keys_from_event(
-    event: dict[str, Any] | None,
-    *,
-    default_bucket: str,
-    s3: Any,
-) -> tuple[list[tuple[str, str]], list[str]]:
-    """Return (bucket, key) pairs plus skipped keys."""
-
-    if not event:
-        return [(default_bucket, key) for key in _list_bronze_keys(s3, default_bucket)], []
-
-    refs = extract_object_refs(event)
-    if not refs:
-        return [(default_bucket, key) for key in _list_bronze_keys(s3, default_bucket)], []
-
-    accepted: list[tuple[str, str]] = []
-    skipped: list[str] = []
-    for ref in refs:
-        key = unquote_plus(ref.key)
-        if not key.startswith(BRONZE_PREFIX):
-            skipped.append(key)
-            continue
-        accepted.append((ref.bucket or default_bucket, key))
-    return accepted, skipped
 
 
 def transform_silver(
@@ -172,20 +56,10 @@ def transform_silver(
     s3_client = s3 or client("s3", resolved)
     ddb_client = ddb or client("dynamodb", resolved)
 
-    pairs, skipped = _bronze_keys_from_event(
-        event, default_bucket=resolved.bronze_bucket, s3=s3_client
+    pairs, skipped = keys_from_event(
+        event, default_bucket=resolved.bronze_bucket, s3=s3_client, prefix=BRONZE_PREFIX
     )
-
-    raw_records: list[dict[str, Any]] = []
-    source_keys: list[str] = []
-    missing: list[str] = []
-    for bucket, key in pairs:
-        payload = _load_json(s3_client, bucket, key)
-        if payload is None:
-            missing.append(f"{bucket}/{key}")
-            continue
-        raw_records.append(payload)
-        source_keys.append(key)
+    raw_records, source_keys, missing = load_pairs(s3_client, pairs)
 
     fingerprint = [*source_keys, *[f"missing:{m}" for m in missing]]
     run_id = deterministic_run_id("silver", *fingerprint) if fingerprint else None
@@ -213,7 +87,7 @@ def transform_silver(
     )
     silver_keys, quarantine_keys = _write_silver(s3_client, resolved.silver_bucket, batch)
 
-    metrics: dict[str, int | str] = {
+    metrics: dict[str, int | float | str] = {
         "valid": len(batch.valid),
         "quarantined": len(batch.quarantined),
         "late": len(batch.late),
@@ -225,18 +99,16 @@ def transform_silver(
         metrics["idempotency_key"] = key
 
     if missing and not source_keys:
-        run.status = "failed"
-        run.error = f"missing bronze objects: {', '.join(missing)}"
+        complete_run(
+            run,
+            status="failed",
+            error=f"missing bronze objects: {', '.join(missing)}",
+            objects=source_keys,
+            metrics=metrics,
+        )
     else:
-        run.status = "succeeded"
-    run.finished_at = datetime.now(tz=UTC)
-    _persist_run(
-        ddb_client,
-        resolved.pipeline_runs_table,
-        run,
-        metrics=metrics,
-        objects=source_keys,
-    )
+        complete_run(run, status="succeeded", objects=source_keys, metrics=metrics)
+    persist_run(ddb_client, resolved.pipeline_runs_table, run)
 
     return {
         "run_id": run.run_id,
