@@ -131,6 +131,22 @@ def main(argv: list[str] | None = None) -> int:
         help="Override LAKEHOUSE_GOLD_SLA_HOURS (default 24)",
     )
 
+    p_ret = sub.add_parser(
+        "retention",
+        help="Plan Gold partition expiry (Hive dt vs retention days)",
+    )
+    p_ret.add_argument(
+        "--retention-days",
+        type=int,
+        default=None,
+        help="Override LAKEHOUSE_GOLD_RETENTION_DAYS (default 90)",
+    )
+    p_ret.add_argument(
+        "--apply",
+        action="store_true",
+        help="Delete expired Gold objects (default is dry-run)",
+    )
+
     p_stream = sub.add_parser(
         "stream",
         help="Optional Kinesis / Firehose producer into Bronze",
@@ -269,6 +285,16 @@ def main(argv: list[str] | None = None) -> int:
         from lakehouse.sla import describe_sla
 
         result = describe_sla(max_age_hours=args.max_age_hours)
+        print(json.dumps(result, indent=2))
+        return 0 if result.get("ok") else 1
+
+    if args.command == "retention":
+        from lakehouse.retention import describe_retention
+
+        result = describe_retention(
+            retention_days=args.retention_days,
+            apply=args.apply,
+        )
         print(json.dumps(result, indent=2))
         return 0 if result.get("ok") else 1
 
