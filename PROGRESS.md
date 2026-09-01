@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 12:00 IST
+- Completed: feat: Gold metric-object compact / rewrite policy
+- Next candidate: feat: Gold compact after retention (scheduled compact + expire)
+- Notes: Added hermetic `lakehouse.compact` + `python -m lakehouse compact` + `make compact`. Spec snapshot keeps one already-compact Gold `metrics/metric=/dt=` partition and marks a fragmented partition (objects > max) for rewrite. Live MiniStack discovers Hive keys in the Gold bucket. Default budget is `LAKEHOUSE_GOLD_COMPACT_MAX_OBJECTS` (2) or `--max-objects`. `--apply` rewrites to `part-000.json` and deletes siblings; dry-run is the default. Docs in `docs/compact.md`.
+
 ## 2026-09-01 11:05 IST
 - Completed: feat: Silver cleaned-event retention / TTL
 - Next candidate: feat: Gold metric-object compact / rewrite policy
@@ -21,7 +26,7 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 ## 2026-09-01 10:05 IST
 - Completed: feat: Bronze raw object retention / TTL
 - Next candidate: feat: Silver cleaned-event retention / TTL
-- Notes: Added hermetic `lakehouse.bronze_retention` + `python -m lakehouse bronze-retention` + `make bronze-retention`. Spec snapshot keeps two recent Bronze `events/dt=` partitions and expires one older than the budget. Live MiniStack discovers Hive `events/dt=` keys in the Bronze bucket. Default budget is `LAKEHOUSE_BRONZE_RETENTION_DAYS` (30) or `--retention-days`. `--apply` deletes expired objects; dry-run is the default. Docs in `docs/bronze-retention.md`.
+- Notes: Added hermetic `lakehouse.bronze_retention` + `python -m lakehouse bronze-retention` + `make bronze-retention`. Spec snapshot keeps two recent Bronze `events/dt=` keys in the Bronze bucket. Default budget is `LAKEHOUSE_BRONZE_RETENTION_DAYS` (30) or `--retention-days`. `--apply` deletes expired objects; dry-run is the default. Docs in `docs/bronze-retention.md`.
 
 ## 2026-09-01 09:05 IST
 - Completed: feat: Silver quarantine retention / TTL
