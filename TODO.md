@@ -65,5 +65,9 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] refactor: Extract shared libraries cleanly
 - [x] docs: “Skills demonstrated” + hiring-manager friendly section
 
+## Post-v1.0 increments
+
+- [x] feat: Dataset lineage snapshot (Bronze → Silver → quality → Gold)
+
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).
