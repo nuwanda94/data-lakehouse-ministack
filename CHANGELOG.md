@@ -21,6 +21,8 @@ How to cut a release: [`docs/release.md`](docs/release.md).
   `make quarantine-retention`).
 - Bronze raw object retention (`python -m lakehouse bronze-retention`,
   `make bronze-retention`).
+- Silver cleaned-event retention (`python -m lakehouse silver-retention`,
+  `make silver-retention`).
 
 ## [0.1.0] - 2026-09-01
 

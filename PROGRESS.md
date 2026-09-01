@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 11:05 IST
+- Completed: feat: Silver cleaned-event retention / TTL
+- Next candidate: feat: Gold metric-object compact / rewrite policy
+- Notes: Added hermetic `lakehouse.silver_retention` + `python -m lakehouse silver-retention` + `make silver-retention`. Spec snapshot keeps two recent Silver `events/event_type=/dt=` partitions and expires one older than the budget. Live MiniStack discovers Hive `dt=` keys in the Silver bucket. Default budget is `LAKEHOUSE_SILVER_RETENTION_DAYS` (60) or `--retention-days`. `--apply` deletes expired objects; dry-run is the default. Docs in `docs/silver-retention.md`.
+
 ## 2026-09-01 10:05 IST
 - Completed: feat: Bronze raw object retention / TTL
 - Next candidate: feat: Silver cleaned-event retention / TTL
