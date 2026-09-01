@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-01 14:13 IST
+- Completed: feat: Silver object compact / rewrite policy
+- Next candidate: feat: Silver compact after retention (scheduled compact + expire)
+- Notes: Added hermetic `lakehouse.silver_compact` + `python -m lakehouse silver-compact` + `make silver-compact`. Spec snapshot keeps one already-compact Silver `events/event_type=/dt=` partition and marks a fragmented partition (objects > max) for rewrite. Live MiniStack discovers Hive keys in the Silver bucket. Default budget is `LAKEHOUSE_SILVER_COMPACT_MAX_OBJECTS` (8) or `--max-objects`. `--apply` rewrites to `part-000.json` and deletes siblings; dry-run is the default. Also wired the missing `bronze-compact` CLI/Makefile targets so existing unit tests resolve. Docs in `docs/silver-compact.md`.
+
 ## 2026-09-01 14:00 IST
 - Completed: feat: Bronze object compact / rewrite policy
 - Next candidate: feat: Silver object compact / rewrite policy
