@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-03 14:05 IST
+- Completed: feat: Gold quarantine compact / rewrite policy
+- Next candidate: chore: gold-quarantine compact-after-retention
+- Notes: Gold `quarantine/` Hive partitions with more than `LAKEHOUSE_GOLD_QUARANTINE_COMPACT_MAX_OBJECTS` (default 2) siblings are rewritten to `part-000.json`. Spec fixtures keep one compact `unreadable_silver` partition and compact a fragmented `unknown_event_type` prefix. CLI: `python -m lakehouse gold-quarantine-compact` / `make gold-quarantine-compact`. Docs in `docs/gold-quarantine-compact.md`.
+
 ## 2026-09-03 13:15 IST
 - Completed: feat: Gold quarantine retention / TTL
 - Next candidate: feat: Gold quarantine compact / rewrite policy
