@@ -48,6 +48,8 @@ How to cut a release: [`docs/release.md`](docs/release.md).
   `make gold-quarantine-maintain`).
 - Platform maintain includes Gold quarantine (`platform-maintain` now runs
   Bronze → Silver → Quarantine → Gold → Gold quarantine).
+- Gold quarantine lineage edges (`python -m lakehouse lineage` now
+  shows the metrics vs rejected-metric side path).
 
 ## [0.1.0] - 2026-09-01
 
