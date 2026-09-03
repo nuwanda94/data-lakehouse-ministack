@@ -40,6 +40,8 @@ How to cut a release: [`docs/release.md`](docs/release.md).
 - Gold quarantine / rejected-metric side path (`gold.handler` writes
   contract-invalid aggregates and unreadable Silver payloads under
   Gold `quarantine/`, never into `metrics/`).
+- Gold quarantine retention / TTL (`python -m lakehouse gold-quarantine-retention`,
+  `make gold-quarantine-retention`).
 
 ## [0.1.0] - 2026-09-01
 
