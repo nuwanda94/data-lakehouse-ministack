@@ -59,3 +59,10 @@ succeeded Gold run do not rewrite either prefix.
 
 Contract-invalid aggregates keep the attempted metric fields in
 `payload` (`dt`, `event_type`, `events`, `amount_usd`).
+
+## Retention
+
+Expired Gold quarantine partitions are planned by
+`python -m lakehouse gold-quarantine-retention` (see
+[`gold-quarantine-retention.md`](gold-quarantine-retention.md)). Default
+TTL is 30 days.
