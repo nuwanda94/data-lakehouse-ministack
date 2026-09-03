@@ -7,7 +7,8 @@ optionally folds in live DynamoDB runs and S3 object counts.
 
 The two quarantine leaves are also exposed as a combined subgraph so
 operators can inspect Silver + Gold side paths without walking the
-happy-path edges.
+happy-path edges. Edge weights fold into **path ratios**
+(cleanse vs reject vs quarantine) plus Bronze and quality cuts.
 
 ``python -m lakehouse lineage`` prints JSON. ``--out`` writes Mermaid.
 """
@@ -49,6 +50,16 @@ ZONES = (
 )
 
 QUARANTINE_NODE_IDS: tuple[str, ...] = ("silver_quarantine", "gold_quarantine")
+
+# Happy-path vs side-path families used for volume ratios.
+# ``unreadable`` is a reject-class failure; ``gate``/``aggregate`` stay
+# on the cleanse family so operators can read one clean/reject/quarantine
+# pie without walking every relation name.
+RATIO_FAMILIES: dict[str, tuple[str, ...]] = {
+    "cleanse": ("cleanse", "aggregate", "gate"),
+    "reject": ("reject", "unreadable"),
+    "quarantine": ("quarantine",),
+}
 
 SPEC_EDGES: tuple[tuple[str, str, str], ...] = (
     ("bronze", "silver", "cleanse"),
@@ -101,295 +112,73 @@ def attach_edge_weights(
     return weighted
 
 
-def quarantine_subgraph(graph: dict[str, Any]) -> dict[str, Any]:
-    """Silver + Gold quarantine leaves as one inspectable subgraph."""
-
-    node_ids = set(QUARANTINE_NODE_IDS)
-    nodes = [n for n in graph.get("nodes") or [] if n.get("id") in node_ids]
-    incoming = [e for e in graph.get("edges") or [] if e.get("to") in node_ids]
-    outgoing = [e for e in graph.get("edges") or [] if e.get("from") in node_ids]
-    objects = sum(int(n.get("objects") or 0) for n in nodes)
-    incoming_weight = sum(int(e.get("weight") or 0) for e in incoming)
-    outgoing_weight = sum(int(e.get("weight") or 0) for e in outgoing)
-    return {
-        "id": "quarantine",
-        "label": "quarantine side paths",
-        "node_ids": list(QUARANTINE_NODE_IDS),
-        "nodes": nodes,
-        "incoming": incoming,
-        "outgoing": outgoing,
-        "objects": objects,
-        "incoming_weight": incoming_weight,
-        "outgoing_weight": outgoing_weight,
-    }
-
-
-def spec_graph() -> dict[str, Any]:
-    """Offline lineage used by unit tests and when MiniStack is down."""
-
-    nodes = [
-        {
-            "id": "bronze",
-            "zone": "bronze",
-            "kind": "raw_events",
-            "uri": "s3://lakehouse-local-bronze/events/",
-            "objects": 20,
-        },
-        {
-            "id": "silver",
-            "zone": "silver",
-            "kind": "cleansed_events",
-            "uri": "s3://lakehouse-local-silver/events/",
-            "objects": 18,
-        },
-        {
-            "id": "silver_quarantine",
-            "zone": "silver",
-            "kind": "quality_quarantine",
-            "uri": "s3://lakehouse-local-silver/quarantine/",
-            "objects": 3,
-        },
-        {
-            "id": "quality",
-            "zone": "silver",
-            "kind": "quality_report",
-            "uri": "s3://lakehouse-local-silver/quality/",
-            "objects": 1,
-        },
-        {
-            "id": "gold",
-            "zone": "gold",
-            "kind": "daily_metrics",
-            "uri": "s3://lakehouse-local-gold/metrics/",
-            "objects": 1,
-        },
-        {
-            "id": "gold_quarantine",
-            "zone": "gold",
-            "kind": "rejected_metrics",
-            "uri": "s3://lakehouse-local-gold/quarantine/",
-            "objects": 2,
-        },
-        {
-            "id": "runs",
-            "zone": "control",
-            "kind": "pipeline_run",
-            "uri": "dynamodb://lakehouse-local-pipeline-runs",
-            "objects": 1,
-        },
-    ]
-    edges = attach_edge_weights(
-        nodes,
-        [{"from": src, "to": dst, "relation": rel} for src, dst, rel in SPEC_EDGES],
-    )
-    graph = {
-        "source": "spec",
-        "run_id": "spec-run",
-        "generated_at": datetime.now(tz=UTC).isoformat(),
-        "nodes": nodes,
-        "edges": edges,
-        "ok": True,
-    }
-    graph["quarantine_subgraph"] = quarantine_subgraph(graph)
-    return graph
-
-
-def _live_object_count(settings: Settings, bucket: str, prefix: str) -> int | None:
+def _edge_weight(edge: dict[str, Any]) -> int:
+    raw = edge.get("weight")
+    if raw is None:
+        return 0
     try:
-        from lakehouse.aws import client
-        from lakehouse.storage import list_keys
+        return int(raw)
+    except (TypeError, ValueError):
+        return 0
 
-        s3 = client("s3", settings)
-        return len(list_keys(s3, bucket, prefix))
-    except Exception:  # noqa: BLE001
+
+def _ratio_map(weights: dict[str, int]) -> dict[str, float]:
+    total = sum(weights.values())
+    if total <= 0:
+        return {key: 0.0 for key in weights}
+    return {key: round(value / total, 4) for key, value in weights.items()}
+
+
+def _family_for(relation: str | None) -> str | None:
+    if not relation:
         return None
+    for family, relations in RATIO_FAMILIES.items():
+        if relation in relations:
+            return family
+    return None
 
 
-def _live_runs(settings: Settings) -> list[dict[str, Any]]:
-    try:
-        from lakehouse.ops.runs import query_runs
+def path_ratios(graph: dict[str, Any]) -> dict[str, Any]:
+    """Share of lineage volume on cleanse vs reject vs quarantine paths.
 
-        payload = query_runs(settings=settings, limit=5)
-        return list(payload.get("runs") or [])
-    except Exception:  # noqa: BLE001
-        return []
+    Destination weights already live on each edge. This folds them into
+    three families (run_metadata is excluded) plus two named cuts:
 
+    * ``bronze_split`` — cleanse vs reject leaving Bronze
+    * ``quality_split`` — aggregate vs reject vs quarantine leaving quality
+    """
 
-def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
-    """Spec graph plus live counts when MiniStack answers."""
+    edges = list(graph.get("edges") or [])
+    family_weights = {family: 0 for family in RATIO_FAMILIES}
+    for edge in edges:
+        family = _family_for(str(edge.get("relation") or ""))
+        if family is None:
+            continue
+        family_weights[family] += _edge_weight(edge)
 
-    spec = spec_graph()
-    resolved = settings or load_settings()
-    if not _endpoint_reachable(resolved.aws_endpoint_url):
-        return {
-            "backend": "spec",
-            "spec": spec,
-            "live": None,
-            "zones": list(ZONES),
-            "quarantine_subgraph": spec["quarantine_subgraph"],
-        }
-    live_runs = _live_runs(resolved)
-    bronze_n = _live_object_count(resolved, resolved.bronze_bucket, "events/")
-    silver_n = _live_object_count(resolved, resolved.silver_bucket, "events/")
-    silver_q_n = _live_object_count(resolved, resolved.silver_bucket, "quarantine/")
-    quality_n = _live_object_count(resolved, resolved.silver_bucket, "quality/")
-    gold_n = _live_object_count(resolved, resolved.gold_bucket, "metrics/")
-    gold_q_n = _live_object_count(resolved, resolved.gold_bucket, "quarantine/")
-    live_ok = any(
-        v is not None for v in (bronze_n, silver_n, silver_q_n, quality_n, gold_n, gold_q_n)
-    ) or bool(live_runs)
-    live_nodes = [
-        {
-            "id": "bronze",
-            "zone": "bronze",
-            "kind": "raw_events",
-            "uri": f"s3://{resolved.bronze_bucket}/events/",
-            "objects": bronze_n,
-        },
-        {
-            "id": "silver",
-            "zone": "silver",
-            "kind": "cleansed_events",
-            "uri": f"s3://{resolved.silver_bucket}/events/",
-            "objects": silver_n,
-        },
-        {
-            "id": "silver_quarantine",
-            "zone": "silver",
-            "kind": "quality_quarantine",
-            "uri": f"s3://{resolved.silver_bucket}/quarantine/",
-            "objects": silver_q_n,
-        },
-        {
-            "id": "quality",
-            "zone": "silver",
-            "kind": "quality_report",
-            "uri": f"s3://{resolved.silver_bucket}/quality/",
-            "objects": quality_n,
-        },
-        {
-            "id": "gold",
-            "zone": "gold",
-            "kind": "daily_metrics",
-            "uri": f"s3://{resolved.gold_bucket}/metrics/",
-            "objects": gold_n,
-        },
-        {
-            "id": "gold_quarantine",
-            "zone": "gold",
-            "kind": "rejected_metrics",
-            "uri": f"s3://{resolved.gold_bucket}/quarantine/",
-            "objects": gold_q_n,
-        },
-        {
-            "id": "runs",
-            "zone": "control",
-            "kind": "pipeline_run",
-            "uri": f"dynamodb://{resolved.pipeline_runs_table}",
-            "objects": len(live_runs) if live_runs else None,
-        },
-    ]
-    run_id = None
-    if live_runs:
-        first = live_runs[0]
-        if isinstance(first, dict):
-            run_id = first.get("run_id")
-    live_edges = attach_edge_weights(
-        live_nodes,
-        [{"from": src, "to": dst, "relation": rel} for src, dst, rel in SPEC_EDGES],
-    )
-    live = {
-        "source": "live",
-        "run_id": run_id,
-        "generated_at": datetime.now(tz=UTC).isoformat(),
-        "nodes": live_nodes,
-        "edges": live_edges,
-        "runs_sampled": len(live_runs),
-        "ok": live_ok,
-    }
-    live["quarantine_subgraph"] = quarantine_subgraph(live)
+    bronze_weights = {"cleanse": 0, "reject": 0}
+    quality_weights = {"aggregate": 0, "reject": 0, "quarantine": 0}
+    for edge in edges:
+        relation = str(edge.get("relation") or "")
+        weight = _edge_weight(edge)
+        if edge.get("from") == "bronze" and relation in bronze_weights:
+            bronze_weights[relation] += weight
+        if edge.get("from") == "quality" and relation in quality_weights:
+            quality_weights[relation] += weight
+
+    total = sum(family_weights.values())
     return {
-        "backend": "live" if live_ok else "spec",
-        "spec": spec,
-        "live": live,
-        "zones": list(ZONES),
-        "quarantine_subgraph": live["quarantine_subgraph"]
-        if live_ok
-        else spec["quarantine_subgraph"],
-    }
-
-
-def render_mermaid(snapshot: dict[str, Any] | None = None) -> str:
-    """Render a flowchart that reviewers can paste into GitHub / Mermaid."""
-
-    snap = snapshot or collect_snapshot()
-    graph = snap["live"] if snap.get("backend") == "live" else snap["spec"]
-    q_ids = set(QUARANTINE_NODE_IDS)
-    lines = ["flowchart LR"]
-    lines.append('  subgraph quarantine["quarantine side paths"]')
-    for node in graph["nodes"]:
-        if node["id"] not in q_ids:
-            continue
-        label = f"{node['id']}\n{node['kind']}"
-        if node.get("objects") is not None:
-            label += f"\n{node['objects']} objects"
-        lines.append(f'    {node["id"]}["{label}"]')
-    lines.append("  end")
-    for node in graph["nodes"]:
-        if node["id"] in q_ids:
-            continue
-        label = f"{node['id']}\n{node['kind']}"
-        if node.get("objects") is not None:
-            label += f"\n{node['objects']} objects"
-        lines.append(f'  {node["id"]}["{label}"]')
-    for edge in graph["edges"]:
-        label = str(edge["relation"])
-        weight = edge.get("weight")
-        if weight is not None:
-            label = f"{label} {weight}"
-        lines.append(f"  {edge['from']} -->|{label}| {edge['to']}")
-    return "\n".join(lines) + "\n"
-
-
-def write_mermaid(path: Path, snapshot: dict[str, Any] | None = None) -> Path:
-    dest = Path(path)
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(render_mermaid(snapshot), encoding="utf-8")
-    return dest
-
-
-def describe_lineage(*, out: str | None = None) -> dict[str, Any]:
-    snap = collect_snapshot()
-    graph = snap["live"] if snap["backend"] == "live" else snap["spec"]
-    subgraph = snap.get("quarantine_subgraph") or quarantine_subgraph(graph)
-    result: dict[str, Any] = {
-        "ok": True,
-        "backend": snap["backend"],
-        "run_id": graph.get("run_id"),
-        "node_ids": [n["id"] for n in graph["nodes"]],
-        "edge_count": len(graph["edges"]),
-        "zones": snap["zones"],
-        "edge_weights": [
-            {
-                "from": e["from"],
-                "to": e["to"],
-                "relation": e["relation"],
-                "weight": e.get("weight"),
-            }
-            for e in graph["edges"]
-        ],
-        "quarantine_subgraph": {
-            "id": subgraph["id"],
-            "label": subgraph["label"],
-            "node_ids": subgraph["node_ids"],
-            "incoming_count": len(subgraph["incoming"]),
-            "outgoing_count": len(subgraph["outgoing"]),
-            "objects": subgraph["objects"],
-            "incoming_weight": subgraph.get("incoming_weight"),
-            "outgoing_weight": subgraph.get("outgoing_weight"),
+        "weights": family_weights,
+        "total": total,
+        "ratios": _ratio_map(family_weights),
+        "bronze_split": {
+            "weights": bronze_weights,
+            "total": sum(bronze_weights.values()),
+            "ratios": _ratio_map(bronze_weights),
+        },
+        "quality_split": {
+            "weights": quality_weights,
+            "total": sum(quality_weights.values()),
+            "ratios": _ratio_map(quality_weights),
         },
     }
-    if out:
-        written = write_mermaid(Path(out), snapshot=snap)
-        result["mermaid_path"] = str(written)
-    return result
