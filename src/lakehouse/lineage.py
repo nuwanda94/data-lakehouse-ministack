@@ -11,9 +11,11 @@ happy-path edges. Edge weights fold into **path ratios**
 (cleanse vs reject vs quarantine) plus Bronze and quality cuts.
 
 A **path-ratio alert** compares the family cleanse share against
-``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` (default 0.60) and the Bronze-split
+``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` (default 0.60), the Bronze-split
 cleanse share against ``LAKEHOUSE_LINEAGE_BRONZE_CLEANSE_FLOOR``
-(default 0.80). The CLI exits 1 when either floor is missed.
+(default 0.80), and the quality-split aggregate share against
+``LAKEHOUSE_LINEAGE_QUALITY_AGGREGATE_FLOOR`` (default 0.15). The CLI
+exits 1 when any floor is missed.
 
 ``python -m lakehouse lineage`` prints JSON. ``--out`` writes Mermaid.
 """
@@ -71,6 +73,8 @@ DEFAULT_CLEANSE_FLOOR = 0.60
 CLEANSE_FLOOR_ENV = "LAKEHOUSE_LINEAGE_CLEANSE_FLOOR"
 DEFAULT_BRONZE_CLEANSE_FLOOR = 0.80
 BRONZE_CLEANSE_FLOOR_ENV = "LAKEHOUSE_LINEAGE_BRONZE_CLEANSE_FLOOR"
+DEFAULT_QUALITY_AGGREGATE_FLOOR = 0.15
+QUALITY_AGGREGATE_FLOOR_ENV = "LAKEHOUSE_LINEAGE_QUALITY_AGGREGATE_FLOOR"
 
 SPEC_EDGES: tuple[tuple[str, str, str], ...] = (
     ("bronze", "silver", "cleanse"),
@@ -217,24 +221,39 @@ def resolve_bronze_cleanse_floor(explicit: float | None = None) -> float:
     return DEFAULT_BRONZE_CLEANSE_FLOOR
 
 
+def resolve_quality_aggregate_floor(explicit: float | None = None) -> float:
+    """Quality-split aggregate-share floor (0–1)."""
+
+    if explicit is not None:
+        return float(explicit)
+    raw = os.environ.get(QUALITY_AGGREGATE_FLOOR_ENV)
+    if raw and raw.strip():
+        return float(raw)
+    return DEFAULT_QUALITY_AGGREGATE_FLOOR
+
+
 def path_ratio_alert(
     ratios: dict[str, Any],
     *,
     cleanse_floor: float | None = None,
     bronze_cleanse_floor: float | None = None,
+    quality_aggregate_floor: float | None = None,
 ) -> dict[str, Any]:
-    """Alert when family or Bronze-split cleanse share drops below floor.
+    """Alert when family, Bronze-split, or quality-split floors are missed.
 
-    Spec fixtures sit at 0.6667 family cleanse and 0.8571 Bronze-split
-    cleanse, so the defaults (0.60 / 0.80) are green. Operators raise
-    ``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` / ``--cleanse-floor`` or
-    ``LAKEHOUSE_LINEAGE_BRONZE_CLEANSE_FLOOR`` / ``--bronze-cleanse-floor``
-    when a pipeline should fail the lineage check. Either cut can flip
-    the top-level ``ok``.
+    Spec fixtures sit at 0.6667 family cleanse, 0.8571 Bronze-split
+    cleanse, and 0.1667 quality-split aggregate, so the defaults
+    (0.60 / 0.80 / 0.15) are green. Operators raise
+    ``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` / ``--cleanse-floor``,
+    ``LAKEHOUSE_LINEAGE_BRONZE_CLEANSE_FLOOR`` / ``--bronze-cleanse-floor``,
+    or ``LAKEHOUSE_LINEAGE_QUALITY_AGGREGATE_FLOOR`` /
+    ``--quality-aggregate-floor`` when a pipeline should fail the
+    lineage check. Any cut can flip the top-level ``ok``.
     """
 
     floor = resolve_cleanse_floor(cleanse_floor)
     bronze_floor = resolve_bronze_cleanse_floor(bronze_cleanse_floor)
+    quality_floor = resolve_quality_aggregate_floor(quality_aggregate_floor)
     family = ratios.get("ratios") or {}
     try:
         cleanse_share = float(family.get("cleanse") or 0.0)
@@ -249,7 +268,14 @@ def path_ratio_alert(
         bronze_cleanse = 0.0
     bronze_total = int((ratios.get("bronze_split") or {}).get("total") or 0)
     bronze_ok = bronze_total <= 0 or bronze_cleanse >= bronze_floor
-    ok = family_ok and bronze_ok
+    quality = (ratios.get("quality_split") or {}).get("ratios") or {}
+    try:
+        quality_aggregate = float(quality.get("aggregate") or 0.0)
+    except (TypeError, ValueError):
+        quality_aggregate = 0.0
+    quality_total = int((ratios.get("quality_split") or {}).get("total") or 0)
+    quality_ok = quality_total <= 0 or quality_aggregate >= quality_floor
+    ok = family_ok and bronze_ok and quality_ok
     return {
         "metric": "cleanse_share",
         "value": cleanse_share,
@@ -268,6 +294,12 @@ def path_ratio_alert(
                 "value": bronze_cleanse,
                 "floor": bronze_floor,
                 "ok": bronze_ok,
+            },
+            "quality_split": {
+                "metric": "aggregate_share",
+                "value": quality_aggregate,
+                "floor": quality_floor,
+                "ok": quality_ok,
             },
         },
     }
@@ -392,6 +424,7 @@ def describe_lineage(
     out: str | None = None,
     cleanse_floor: float | None = None,
     bronze_cleanse_floor: float | None = None,
+    quality_aggregate_floor: float | None = None,
 ) -> dict[str, Any]:
     from lakehouse.lineage_render import describe_lineage as _impl
 
@@ -399,4 +432,5 @@ def describe_lineage(
         out=out,
         cleanse_floor=cleanse_floor,
         bronze_cleanse_floor=bronze_cleanse_floor,
+        quality_aggregate_floor=quality_aggregate_floor,
     )
