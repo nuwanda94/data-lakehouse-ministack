@@ -42,6 +42,8 @@ How to cut a release: [`docs/release.md`](docs/release.md).
   Gold `quarantine/`, never into `metrics/`).
 - Gold quarantine retention / TTL (`python -m lakehouse gold-quarantine-retention`,
   `make gold-quarantine-retention`).
+- Gold quarantine compact / rewrite (`python -m lakehouse gold-quarantine-compact`,
+  `make gold-quarantine-compact`).
 
 ## [0.1.0] - 2026-09-01
 
