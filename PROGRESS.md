@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-04 01:10 IST
+- Completed: feat: Lineage path-ratio alert on quality-split aggregate floor
+- Next candidate: feat: Lineage path-ratio alert on quality-split reject ceiling
+- Notes: Quality-split aggregate share is compared to `LAKEHOUSE_LINEAGE_QUALITY_AGGREGATE_FLOOR` (default 0.15) or `--quality-aggregate-floor`. Spec fixtures stay green at 0.1667. Family / Bronze / quality cuts all flip `path_ratio_alert.ok`. CLI JSON `cuts.quality_split`; Mermaid records `%% quality-split alert: …`. `python -m lakehouse lineage` exits 1 on a quality-split breach. Docs in `docs/lineage.md`.
+
 ## 2026-09-04 00:05 IST
 - Completed: feat: Lineage path-ratio alert on Bronze-split cleanse floor
 - Next candidate: feat: Lineage path-ratio alert on quality-split aggregate floor
