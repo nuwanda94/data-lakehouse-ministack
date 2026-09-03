@@ -55,6 +55,9 @@ How to cut a release: [`docs/release.md`](docs/release.md).
   `subgraph quarantine`).
 - Lineage path-ratio alert on the family cleanse share
   (`LAKEHOUSE_LINEAGE_CLEANSE_FLOOR` / `--cleanse-floor`, default 0.60).
+- Lineage path-ratio alert on the quality-split reject ceiling
+  (`LAKEHOUSE_LINEAGE_QUALITY_REJECT_CEILING` /
+  `--quality-reject-ceiling`, default 0.50).
 
 ### Changed
 

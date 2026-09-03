@@ -96,6 +96,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Lineage path-ratio alert threshold (cleanse share floor)
 - [x] feat: Lineage path-ratio alert on Bronze-split cleanse floor
 - [x] feat: Lineage path-ratio alert on quality-split aggregate floor
+- [x] feat: Lineage path-ratio alert on quality-split reject ceiling
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).
