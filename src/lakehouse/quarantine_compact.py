@@ -127,9 +127,7 @@ def spec_snapshot(*, max_objects: int | None = None) -> dict[str, Any]:
         {
             "reason": "poison",
             "objects": budget + 2,
-            "keys": [
-                f"quarantine/reason=poison/evt-{i:03d}.json" for i in range(budget + 2)
-            ],
+            "keys": [f"quarantine/reason=poison/evt-{i:03d}.json" for i in range(budget + 2)],
         },
     ]
     plan = plan_compact(fixtures, max_objects=budget)
@@ -224,9 +222,7 @@ def _rewrite_prefix(
                 continue
         merged = merge_quarantine_payloads(payloads)
         merged["reason"] = str(row.get("reason") or merged.get("reason") or "")
-        target = str(
-            row.get("target") or compact_key(reason=str(row.get("reason") or "unknown"))
-        )
+        target = str(row.get("target") or compact_key(reason=str(row.get("reason") or "unknown")))
         put_json(s3, settings.silver_bucket, target, merged)
         deleted: list[str] = []
         for key in keys:
