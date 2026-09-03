@@ -19,6 +19,8 @@ depend on OpenLineage, Marquez, or a live MiniStack session.
 * Edge **weights** = destination-node object counts (Silver volume on
   `cleanse`, quarantine prefix volume on `reject` / `quarantine` /
   `unreadable`, run-row count on `run_metadata`)
+* Path **ratios** = family share of those weights (`cleanse` vs
+  `reject` vs `quarantine`), plus Bronze and quality cuts
 * A Mermaid flowchart you can paste into GitHub or the README
 
 Silver splits after Bronze: valid events follow
@@ -44,6 +46,18 @@ prints the list as `edge_weights`. Mermaid labels look like
 `bronze -->|cleanse 18| silver` so a reviewer can see volume without
 opening the JSON. `quarantine_subgraph.incoming_weight` /
 `outgoing_weight` sum those counts on the side-path cuts.
+
+Path **ratios** fold those weights into three families:
+
+* `cleanse` — `cleanse` + `gate` + `aggregate`
+* `reject` — `reject` + `unreadable`
+* `quarantine` — quality-gate quarantine writes
+
+`run_metadata` edges are excluded. The CLI also exposes two named
+cuts: `bronze_split` (cleanse vs reject leaving Bronze) and
+`quality_split` (aggregate vs reject vs quarantine leaving quality).
+Mermaid records the family mix as `%% path ratios: cleanse 0.6667
+reject 0.2333 quarantine 0.1`.
 
 When S3 or DynamoDB is unreachable the graph still renders from the
 hermetic spec (`backend=spec`).
