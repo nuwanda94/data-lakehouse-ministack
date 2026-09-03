@@ -171,3 +171,208 @@ def spec_snapshot(*, max_objects: int | None = None) -> dict[str, Any]:
         "deleted": [],
         **plan,
     }
+
+
+def _live_gold_quarantine_partitions(settings: Settings) -> list[dict[str, Any]]:
+    try:
+        from lakehouse.aws import client
+        from lakehouse.storage import list_keys
+
+        s3 = client("s3", settings)
+        keys = list_keys(s3, settings.gold_bucket, PREFIX)
+        buckets: dict[tuple[str, str, str], dict[str, Any]] = {}
+        for key in keys:
+            parts = parse_hive_key(key)
+            dt = parts.get("dt")
+            metric = parts.get("metric")
+            reason = parts.get("reason")
+            if not dt:
+                continue
+            token = (str(reason or "unknown"), str(metric or "unknown"), str(dt))
+            row = buckets.setdefault(
+                token,
+                {
+                    "reason": token[0],
+                    "metric": token[1],
+                    "dt": token[2],
+                    "objects": 0,
+                    "keys": [],
+                },
+            )
+            row["objects"] = int(row["objects"]) + 1
+            row["keys"].append(key)
+        return list(buckets.values())
+    except Exception:  # noqa: BLE001
+        return []
+
+
+def merge_quarantine_payloads(payloads: list[Any]) -> dict[str, Any]:
+    """Fold small Gold quarantine JSONs into one rewrite payload."""
+
+    events: list[dict[str, Any]] = []
+    sources = 0
+    reason: str | None = None
+    metric: str | None = None
+    dt: str | None = None
+    for payload in payloads:
+        if isinstance(payload, bytes | bytearray | str):
+            try:
+                payload = json.loads(payload)
+            except json.JSONDecodeError:
+                sources += 1
+                continue
+        sources += 1
+        if isinstance(payload, list):
+            for item in payload:
+                if isinstance(item, dict):
+                    events.append(item)
+                    reason = str(item.get("reason") or reason or "")
+                    nested = item.get("payload") if isinstance(item.get("payload"), dict) else {}
+                    metric = str(
+                        item.get("metric")
+                        or item.get("event_type")
+                        or nested.get("event_type")
+                        or metric
+                        or ""
+                    )
+                    dt = str(item.get("dt") or nested.get("dt") or dt or "")
+            continue
+        if not isinstance(payload, dict):
+            continue
+        nested_events = payload.get("events") or payload.get("rejected")
+        if isinstance(nested_events, list):
+            for item in nested_events:
+                if isinstance(item, dict):
+                    events.append(item)
+            reason = str(payload.get("reason") or reason or "")
+            metric = str(payload.get("metric") or payload.get("event_type") or metric or "")
+            dt = str(payload.get("dt") or dt or "")
+            continue
+        events.append(payload)
+        reason = str(payload.get("reason") or reason or "")
+        inner = payload.get("payload") if isinstance(payload.get("payload"), dict) else {}
+        metric = str(
+            payload.get("metric")
+            or payload.get("event_type")
+            or inner.get("event_type")
+            or metric
+            or ""
+        )
+        dt = str(payload.get("dt") or inner.get("dt") or dt or "")
+    return {
+        "reason": reason or "",
+        "metric": metric or "unknown",
+        "dt": dt or "",
+        "zone": "gold",
+        "record_count": len(events),
+        "compacted_from": sources,
+        "events": events,
+    }
+
+
+def _rewrite_partition(
+    settings: Settings,
+    row: dict[str, Any],
+) -> tuple[str | None, list[str], str | None]:
+    """Write the compact object and delete sibling keys."""
+
+    try:
+        from lakehouse.aws import client
+        from lakehouse.storage import load_json, put_json
+
+        s3 = client("s3", settings)
+        keys = list(row.get("keys") or [])
+        payloads: list[Any] = []
+        for key in keys:
+            try:
+                payloads.append(load_json(s3, settings.gold_bucket, key))
+            except Exception:  # noqa: BLE001
+                continue
+        merged = merge_quarantine_payloads(payloads)
+        merged["reason"] = str(row.get("reason") or merged.get("reason") or "unknown")
+        merged["metric"] = str(row.get("metric") or merged.get("metric") or "unknown")
+        if not merged.get("dt"):
+            merged["dt"] = str(row.get("dt") or "")
+        target = str(
+            row.get("target")
+            or compact_key(
+                reason=str(row.get("reason") or "unknown"),
+                metric=str(row.get("metric") or "unknown"),
+                dt=str(row.get("dt") or ""),
+            )
+        )
+        put_json(s3, settings.gold_bucket, target, merged)
+        deleted: list[str] = []
+        for key in keys:
+            if key == target:
+                continue
+            s3.delete_object(Bucket=settings.gold_bucket, Key=key)
+            deleted.append(key)
+        return target, deleted, None
+    except Exception as exc:  # noqa: BLE001
+        return None, [], str(exc)
+
+
+def collect_snapshot(
+    settings: Settings | None = None,
+    *,
+    max_objects: int | None = None,
+    apply: bool = False,
+) -> dict[str, Any]:
+    """Spec plan plus a live Gold quarantine plan when MiniStack answers."""
+
+    spec = spec_snapshot(max_objects=max_objects)
+    try:
+        resolved = settings or load_settings()
+    except Exception:  # noqa: BLE001
+        return spec
+    if not _endpoint_reachable(resolved.aws_endpoint_url):
+        return spec
+
+    live_parts = _live_gold_quarantine_partitions(resolved)
+    if not live_parts:
+        return spec
+
+    plan = plan_compact(live_parts, max_objects=max_objects)
+    rewritten: list[str] = []
+    deleted: list[str] = []
+    errors: list[str] = []
+    if apply and plan["compact"]:
+        for row in plan["compact"]:
+            target, gone, err = _rewrite_partition(resolved, row)
+            if target:
+                rewritten.append(target)
+            deleted.extend(gone)
+            if err:
+                errors.append(f"{row.get('reason')}/{row.get('metric')}/{row.get('dt')}: {err}")
+    return {
+        "backend": "live",
+        "generated_at": datetime.now(tz=UTC).isoformat(),
+        "apply": apply,
+        "rewritten": rewritten,
+        "deleted": deleted,
+        "errors": errors,
+        "spec": spec,
+        **plan,
+        "ok": not errors,
+    }
+
+
+def describe_gold_quarantine_compact(
+    *,
+    max_objects: int | None = None,
+    apply: bool = False,
+) -> dict[str, Any]:
+    snap = collect_snapshot(max_objects=max_objects, apply=apply)
+    return {
+        "ok": bool(snap.get("ok")),
+        "backend": snap.get("backend"),
+        "dataset": snap.get("dataset", DATASET_ID),
+        "max_objects": snap.get("max_objects"),
+        "keep_count": snap.get("keep_count"),
+        "compact_count": snap.get("compact_count"),
+        "apply": snap.get("apply", False),
+        "rewritten_count": len(list(snap.get("rewritten") or [])),
+        "deleted_count": len(list(snap.get("deleted") or [])),
+        "compact": snap.get("compact") or [],
+    }
