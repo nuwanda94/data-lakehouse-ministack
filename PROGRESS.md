@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-03 22:30 IST
+- Completed: feat: Lineage path ratios (cleanse vs reject vs quarantine)
+- Next candidate: feat: Lineage path-ratio alert threshold (cleanse share floor)
+- Notes: Spec + live graphs fold destination edge weights into family ratios (`cleanse` = cleanse/gate/aggregate, `reject` = reject/unreadable, `quarantine`). Named cuts: `bronze_split` and `quality_split`. CLI JSON exposes `path_ratios`; Mermaid records `%% path ratios: …`. Docs in `docs/lineage.md`.
+
 ## 2026-09-03 21:10 IST
 - Completed: feat: Lineage edge weights from live object counts
 - Next candidate: feat: Lineage path ratios (cleanse vs reject vs quarantine)

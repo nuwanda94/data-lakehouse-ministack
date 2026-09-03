@@ -11,6 +11,7 @@ from lakehouse.lineage import (
     collect_snapshot,
     describe_lineage,
     node_object_counts,
+    path_ratios,
     quarantine_subgraph,
     render_mermaid,
     spec_graph,
@@ -52,9 +53,23 @@ def test_spec_graph_covers_medallion_path() -> None:
     assert subgraph["objects"] == 5
     assert subgraph["incoming_weight"] == 3 + 3 + 2 + 2
     assert subgraph["outgoing_weight"] == 1 + 1
+    ratios = graph["path_ratios"]
+    assert ratios["weights"]["cleanse"] == 18 + 1 + 1
+    assert ratios["weights"]["reject"] == 3 + 2 + 2
+    assert ratios["weights"]["quarantine"] == 3
+    assert ratios["total"] == 18 + 1 + 1 + 3 + 2 + 2 + 3
+    assert ratios["ratios"]["cleanse"] == 0.6667
+    assert ratios["bronze_split"]["weights"] == {"cleanse": 18, "reject": 3}
+    assert ratios["quality_split"]["weights"] == {
+        "aggregate": 1,
+        "reject": 2,
+        "quarantine": 3,
+    }
     page = render_mermaid({"backend": "spec", "spec": graph, "live": None})
     assert "bronze -->|cleanse 18| silver" in page
     assert "quality -->|reject 2| gold_quarantine" in page
+    assert "%% path ratios:" in page
+    assert "cleanse 0.6667" in page
     incoming = {(e["from"], e["to"], e["relation"]) for e in subgraph["incoming"]}
     assert ("bronze", "silver_quarantine", "reject") in incoming
     assert ("quality", "silver_quarantine", "quarantine") in incoming
@@ -104,6 +119,8 @@ def test_write_mermaid_and_describe(tmp_path: Path) -> None:
     )
     assert cleanse["relation"] == "cleanse"
     assert cleanse["weight"] is not None
+    assert result["path_ratios"]["ratios"]["cleanse"] is not None
+    assert result["path_ratios"]["bronze_split"]["weights"]["cleanse"] is not None
     assert Path(result["mermaid_path"]).is_file()
 
 
@@ -111,6 +128,15 @@ def test_quarantine_subgraph_helper() -> None:
     subgraph = quarantine_subgraph(spec_graph())
     assert {n["id"] for n in subgraph["nodes"]} == set(QUARANTINE_NODE_IDS)
     assert subgraph["label"] == "quarantine side paths"
+
+
+def test_path_ratios_cleanse_reject_quarantine() -> None:
+    graph = spec_graph()
+    computed = path_ratios(graph)
+    family = computed["ratios"]
+    assert round(family["cleanse"] + family["reject"] + family["quarantine"], 4) == 1.0
+    assert computed["bronze_split"]["ratios"]["cleanse"] == 0.8571
+    assert computed["bronze_split"]["ratios"]["reject"] == 0.1429
 
 
 def test_attach_edge_weights_uses_destination_counts() -> None:
