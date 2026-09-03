@@ -22,7 +22,11 @@ def render_mermaid(snapshot: dict[str, Any] | None = None) -> str:
     graph = snap["live"] if snap.get("backend") == "live" else snap["spec"]
     ratios = graph.get("path_ratios") or snap.get("path_ratios") or path_ratios(graph)
     family = ratios.get("ratios") or {}
-    alert = graph.get("path_ratio_alert") or snap.get("path_ratio_alert") or path_ratio_alert(ratios)
+    alert = (
+        graph.get("path_ratio_alert")
+        or snap.get("path_ratio_alert")
+        or path_ratio_alert(ratios)
+    )
     q_ids = set(QUARANTINE_NODE_IDS)
     lines = ["flowchart LR"]
     if family:
