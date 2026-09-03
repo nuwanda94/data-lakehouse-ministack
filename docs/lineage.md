@@ -8,6 +8,9 @@ depend on OpenLineage, Marquez, or a live MiniStack session.
 * Zone nodes: Bronze raw events, Silver cleansed events, Silver
   quality-quarantine rows, Silver quality reports, Gold daily metrics,
   Gold quarantine rejected metrics, DynamoDB pipeline-run rows
+* Combined **quarantine subgraph** grouping the Silver + Gold side
+  paths (`silver_quarantine` + `gold_quarantine`) with incoming reject /
+  quarantine / unreadable edges
 * Edges: `cleanse`, `reject` (Bronze → Silver quarantine), `gate`,
   `quarantine` (quality → Silver quarantine), `aggregate`, `reject`
   (quality → Gold quarantine), `unreadable` (Silver → Gold quarantine),
@@ -28,6 +31,10 @@ follow `quality -->|aggregate| gold`; rejected metrics and unreadable
 Silver contributions follow the side path into `gold_quarantine/`
 (`quality -->|reject| gold_quarantine`,
 `silver -->|unreadable| gold_quarantine`).
+
+The CLI JSON exposes `quarantine_subgraph` so dashboards can render the
+side paths without walking the happy-path graph. Mermaid wraps those
+nodes in `subgraph quarantine["quarantine side paths"]`.
 
 When S3 or DynamoDB is unreachable the graph still renders from the
 hermetic spec (`backend=spec`).

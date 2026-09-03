@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-03 18:08 IST
+- Completed: feat: Combined quarantine lineage subgraph (Silver + Gold side paths)
+- Next candidate: feat: Lineage edge weights from live object counts
+- Notes: Spec + live snapshots now expose `quarantine_subgraph` (nodes `silver_quarantine` + `gold_quarantine`, incoming reject/quarantine/unreadable edges, outgoing `run_metadata`). Mermaid wraps those leaves in `subgraph quarantine["quarantine side paths"]`. CLI JSON includes incoming/outgoing counts. Docs in `docs/lineage.md`.
+
 ## 2026-09-03 17:00 IST
 - Completed: feat: Silver quarantine lineage edges (cleansed vs quality-quarantine side path)
 - Next candidate: feat: Combined quarantine lineage subgraph (Silver + Gold side paths)

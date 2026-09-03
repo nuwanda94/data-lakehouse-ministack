@@ -90,6 +90,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] chore: include gold-quarantine in platform-maintain
 - [x] feat: Gold quarantine lineage edges (metrics vs rejected-metric side path)
 - [x] feat: Silver quarantine lineage edges (cleansed vs quality-quarantine side path)
+- [x] feat: Combined quarantine lineage subgraph (Silver + Gold side paths)
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).
