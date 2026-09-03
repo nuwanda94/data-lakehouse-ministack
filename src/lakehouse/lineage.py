@@ -1,9 +1,9 @@
 """Dataset lineage for one medallion run.
 
 MiniStack CI is hermetic, so this module always builds a spec graph
-(Bronze raw → Silver cleansed → quality report → Gold metrics **or**
-Gold quarantine rejected-metrics + run row) and optionally folds in
-live DynamoDB runs and S3 object counts.
+(Bronze raw → Silver cleansed **or** Silver quarantine → quality report →
+Gold metrics **or** Gold quarantine rejected-metrics + run row) and
+optionally folds in live DynamoDB runs and S3 object counts.
 
 ``python -m lakehouse lineage`` prints JSON. ``--out`` writes Mermaid.
 """
@@ -34,16 +34,27 @@ def _endpoint_reachable(url: str | None, timeout: float = 0.4) -> bool:
         return False
 
 
-ZONES = ("bronze", "silver", "quality", "gold", "gold_quarantine", "runs")
+ZONES = (
+    "bronze",
+    "silver",
+    "silver_quarantine",
+    "quality",
+    "gold",
+    "gold_quarantine",
+    "runs",
+)
 
 SPEC_EDGES: tuple[tuple[str, str, str], ...] = (
     ("bronze", "silver", "cleanse"),
+    ("bronze", "silver_quarantine", "reject"),
     ("silver", "quality", "gate"),
+    ("quality", "silver_quarantine", "quarantine"),
     ("quality", "gold", "aggregate"),
     ("quality", "gold_quarantine", "reject"),
     ("silver", "gold_quarantine", "unreadable"),
     ("bronze", "runs", "run_metadata"),
     ("silver", "runs", "run_metadata"),
+    ("silver_quarantine", "runs", "run_metadata"),
     ("quality", "runs", "run_metadata"),
     ("gold", "runs", "run_metadata"),
     ("gold_quarantine", "runs", "run_metadata"),
@@ -67,6 +78,13 @@ def spec_graph() -> dict[str, Any]:
             "kind": "cleansed_events",
             "uri": "s3://lakehouse-local-silver/events/",
             "objects": 18,
+        },
+        {
+            "id": "silver_quarantine",
+            "zone": "silver",
+            "kind": "quality_quarantine",
+            "uri": "s3://lakehouse-local-silver/quarantine/",
+            "objects": 3,
         },
         {
             "id": "quality",
@@ -144,12 +162,14 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
     live_runs = _live_runs(resolved)
     bronze_n = _live_object_count(resolved, resolved.bronze_bucket, "events/")
     silver_n = _live_object_count(resolved, resolved.silver_bucket, "events/")
+    silver_q_n = _live_object_count(resolved, resolved.silver_bucket, "quarantine/")
     quality_n = _live_object_count(resolved, resolved.silver_bucket, "quality/")
     gold_n = _live_object_count(resolved, resolved.gold_bucket, "metrics/")
     gold_q_n = _live_object_count(resolved, resolved.gold_bucket, "quarantine/")
-    live_ok = any(v is not None for v in (bronze_n, silver_n, quality_n, gold_n, gold_q_n)) or bool(
-        live_runs
-    )
+    live_ok = any(
+        v is not None
+        for v in (bronze_n, silver_n, silver_q_n, quality_n, gold_n, gold_q_n)
+    ) or bool(live_runs)
     live_nodes = [
         {
             "id": "bronze",
@@ -164,6 +184,13 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
             "kind": "cleansed_events",
             "uri": f"s3://{resolved.silver_bucket}/events/",
             "objects": silver_n,
+        },
+        {
+            "id": "silver_quarantine",
+            "zone": "silver",
+            "kind": "quality_quarantine",
+            "uri": f"s3://{resolved.silver_bucket}/quarantine/",
+            "objects": silver_q_n,
         },
         {
             "id": "quality",

@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-03 17:00 IST
+- Completed: feat: Silver quarantine lineage edges (cleansed vs quality-quarantine side path)
+- Next candidate: feat: Combined quarantine lineage subgraph (Silver + Gold side paths)
+- Notes: Lineage spec + live graphs now include a `silver_quarantine` node (`quality_quarantine` under Silver `quarantine/`). Edges: `bronze -->|reject| silver_quarantine`, `quality -->|quarantine| silver_quarantine`, plus `run_metadata` to DynamoDB. Live object counts use the Silver `quarantine/` prefix. Docs in `docs/lineage.md`.
+
 ## 2026-09-03 16:00 IST
 - Completed: feat: Gold quarantine lineage edges (metrics vs rejected-metric side path)
 - Next candidate: feat: Silver quarantine lineage edges (cleansed vs quality-quarantine side path)
