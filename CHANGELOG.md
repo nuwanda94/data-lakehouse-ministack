@@ -36,6 +36,7 @@ How to cut a release: [`docs/release.md`](docs/release.md).
   `make quarantine-compact`).
 - Quarantine compact-after-retention (`python -m lakehouse quarantine-maintain`,
   `make quarantine-maintain`).
+- Platform maintain includes Silver quarantine (`platform-maintain` now runs Bronze → Silver → Quarantine → Gold).
 
 ## [0.1.0] - 2026-09-01
 
