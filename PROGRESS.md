@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-03 13:15 IST
+- Completed: feat: Gold quarantine retention / TTL
+- Next candidate: feat: Gold quarantine compact / rewrite policy
+- Notes: Gold `quarantine/` Hive partitions now have a 30-day TTL (`LAKEHOUSE_GOLD_QUARANTINE_RETENTION_DAYS`). Spec fixtures keep two recent rejected metrics and expire one stale `unknown_event_type` partition. CLI: `python -m lakehouse gold-quarantine-retention` / `make gold-quarantine-retention`. Docs in `docs/gold-quarantine-retention.md`.
+
 ## 2026-09-03 13:10 IST
 - Completed: feat: Gold quarantine / rejected-metric side path
 - Next candidate: feat: Gold quarantine retention / TTL

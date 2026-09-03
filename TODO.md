@@ -84,6 +84,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] chore: quarantine compact-after-retention
 - [x] chore: include quarantine in platform-maintain
 - [x] feat: Gold quarantine / rejected-metric side path
+- [x] feat: Gold quarantine retention / TTL
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).
