@@ -167,8 +167,7 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
     gold_n = _live_object_count(resolved, resolved.gold_bucket, "metrics/")
     gold_q_n = _live_object_count(resolved, resolved.gold_bucket, "quarantine/")
     live_ok = any(
-        v is not None
-        for v in (bronze_n, silver_n, silver_q_n, quality_n, gold_n, gold_q_n)
+        v is not None for v in (bronze_n, silver_n, silver_q_n, quality_n, gold_n, gold_q_n)
     ) or bool(live_runs)
     live_nodes = [
         {
