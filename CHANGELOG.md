@@ -50,6 +50,9 @@ How to cut a release: [`docs/release.md`](docs/release.md).
   Bronze → Silver → Quarantine → Gold → Gold quarantine).
 - Gold quarantine lineage edges (`python -m lakehouse lineage` now
   shows the metrics vs rejected-metric side path).
+- Combined quarantine lineage subgraph grouping Silver + Gold side
+  paths (`quarantine_subgraph` in the CLI JSON; Mermaid
+  `subgraph quarantine`).
 
 ## [0.1.0] - 2026-09-01
 
