@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from lakehouse.config import Settings, load_settings
+from lakehouse.config import Settings
 
 
 def _endpoint_reachable(url: str | None, timeout: float = 0.4) -> bool:
@@ -276,3 +276,27 @@ def spec_graph() -> dict[str, Any]:
     graph["quarantine_subgraph"] = quarantine_subgraph(graph)
     graph["path_ratios"] = path_ratios(graph)
     return graph
+
+
+def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
+    from lakehouse.lineage_snapshot import collect_snapshot as _impl
+
+    return _impl(settings)
+
+
+def render_mermaid(snapshot: dict[str, Any] | None = None) -> str:
+    from lakehouse.lineage_render import render_mermaid as _impl
+
+    return _impl(snapshot)
+
+
+def write_mermaid(path: Path, snapshot: dict[str, Any] | None = None) -> Path:
+    from lakehouse.lineage_render import write_mermaid as _impl
+
+    return _impl(path, snapshot)
+
+
+def describe_lineage(*, out: str | None = None) -> dict[str, Any]:
+    from lakehouse.lineage_render import describe_lineage as _impl
+
+    return _impl(out=out)
