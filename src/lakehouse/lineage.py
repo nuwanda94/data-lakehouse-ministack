@@ -67,6 +67,40 @@ SPEC_EDGES: tuple[tuple[str, str, str], ...] = (
 )
 
 
+def node_object_counts(nodes: list[dict[str, Any]]) -> dict[str, int | None]:
+    """Map node id → object count (``None`` when the live probe missed)."""
+
+    return {str(n["id"]): n.get("objects") for n in nodes if n.get("id")}
+
+
+def attach_edge_weights(
+    nodes: list[dict[str, Any]],
+    edges: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Stamp each edge with the destination node's live/spec object count.
+
+    Destination weighting matches how operators read a medallion graph:
+    ``bronze -->|cleanse| silver`` carries the Silver object volume,
+    quarantine rejects carry the quarantine prefix volume, and
+    ``run_metadata`` edges carry the sampled run-row count.
+    """
+
+    counts = node_object_counts(nodes)
+    weighted: list[dict[str, Any]] = []
+    for edge in edges:
+        dest = edge.get("to")
+        weight = counts.get(str(dest)) if dest is not None else None
+        if weight is not None:
+            try:
+                weight = int(weight)
+            except (TypeError, ValueError):
+                weight = None
+        stamped = dict(edge)
+        stamped["weight"] = weight
+        weighted.append(stamped)
+    return weighted
+
+
 def quarantine_subgraph(graph: dict[str, Any]) -> dict[str, Any]:
     """Silver + Gold quarantine leaves as one inspectable subgraph."""
 
@@ -75,6 +109,8 @@ def quarantine_subgraph(graph: dict[str, Any]) -> dict[str, Any]:
     incoming = [e for e in graph.get("edges") or [] if e.get("to") in node_ids]
     outgoing = [e for e in graph.get("edges") or [] if e.get("from") in node_ids]
     objects = sum(int(n.get("objects") or 0) for n in nodes)
+    incoming_weight = sum(int(e.get("weight") or 0) for e in incoming)
+    outgoing_weight = sum(int(e.get("weight") or 0) for e in outgoing)
     return {
         "id": "quarantine",
         "label": "quarantine side paths",
@@ -83,6 +119,8 @@ def quarantine_subgraph(graph: dict[str, Any]) -> dict[str, Any]:
         "incoming": incoming,
         "outgoing": outgoing,
         "objects": objects,
+        "incoming_weight": incoming_weight,
+        "outgoing_weight": outgoing_weight,
     }
 
 
@@ -140,7 +178,10 @@ def spec_graph() -> dict[str, Any]:
             "objects": 1,
         },
     ]
-    edges = [{"from": src, "to": dst, "relation": rel} for src, dst, rel in SPEC_EDGES]
+    edges = attach_edge_weights(
+        nodes,
+        [{"from": src, "to": dst, "relation": rel} for src, dst, rel in SPEC_EDGES],
+    )
     graph = {
         "source": "spec",
         "run_id": "spec-run",
@@ -253,12 +294,16 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
         first = live_runs[0]
         if isinstance(first, dict):
             run_id = first.get("run_id")
+    live_edges = attach_edge_weights(
+        live_nodes,
+        [{"from": src, "to": dst, "relation": rel} for src, dst, rel in SPEC_EDGES],
+    )
     live = {
         "source": "live",
         "run_id": run_id,
         "generated_at": datetime.now(tz=UTC).isoformat(),
         "nodes": live_nodes,
-        "edges": spec["edges"],
+        "edges": live_edges,
         "runs_sampled": len(live_runs),
         "ok": live_ok,
     }
@@ -298,7 +343,11 @@ def render_mermaid(snapshot: dict[str, Any] | None = None) -> str:
             label += f"\n{node['objects']} objects"
         lines.append(f'  {node["id"]}["{label}"]')
     for edge in graph["edges"]:
-        lines.append(f"  {edge['from']} -->|{edge['relation']}| {edge['to']}")
+        label = str(edge["relation"])
+        weight = edge.get("weight")
+        if weight is not None:
+            label = f"{label} {weight}"
+        lines.append(f"  {edge['from']} -->|{label}| {edge['to']}")
     return "\n".join(lines) + "\n"
 
 
@@ -320,6 +369,15 @@ def describe_lineage(*, out: str | None = None) -> dict[str, Any]:
         "node_ids": [n["id"] for n in graph["nodes"]],
         "edge_count": len(graph["edges"]),
         "zones": snap["zones"],
+        "edge_weights": [
+            {
+                "from": e["from"],
+                "to": e["to"],
+                "relation": e["relation"],
+                "weight": e.get("weight"),
+            }
+            for e in graph["edges"]
+        ],
         "quarantine_subgraph": {
             "id": subgraph["id"],
             "label": subgraph["label"],
@@ -327,6 +385,8 @@ def describe_lineage(*, out: str | None = None) -> dict[str, Any]:
             "incoming_count": len(subgraph["incoming"]),
             "outgoing_count": len(subgraph["outgoing"]),
             "objects": subgraph["objects"],
+            "incoming_weight": subgraph.get("incoming_weight"),
+            "outgoing_weight": subgraph.get("outgoing_weight"),
         },
     }
     if out:
