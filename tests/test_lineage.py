@@ -11,6 +11,7 @@ from lakehouse.lineage import (
     collect_snapshot,
     describe_lineage,
     node_object_counts,
+    path_ratio_alert,
     path_ratios,
     quarantine_subgraph,
     render_mermaid,
@@ -65,11 +66,18 @@ def test_spec_graph_covers_medallion_path() -> None:
         "reject": 2,
         "quarantine": 3,
     }
+    alert = graph["path_ratio_alert"]
+    assert alert["metric"] == "cleanse_share"
+    assert alert["value"] == 0.6667
+    assert alert["floor"] == 0.6
+    assert alert["ok"] is True
+    assert alert["status"] == "ok"
     page = render_mermaid({"backend": "spec", "spec": graph, "live": None})
     assert "bronze -->|cleanse 18| silver" in page
     assert "quality -->|reject 2| gold_quarantine" in page
     assert "%% path ratios:" in page
     assert "cleanse 0.6667" in page
+    assert "%% path-ratio alert: ok cleanse 0.6667 floor 0.6" in page
     incoming = {(e["from"], e["to"], e["relation"]) for e in subgraph["incoming"]}
     assert ("bronze", "silver_quarantine", "reject") in incoming
     assert ("quality", "silver_quarantine", "quarantine") in incoming
@@ -121,6 +129,8 @@ def test_write_mermaid_and_describe(tmp_path: Path) -> None:
     assert cleanse["weight"] is not None
     assert result["path_ratios"]["ratios"]["cleanse"] is not None
     assert result["path_ratios"]["bronze_split"]["weights"]["cleanse"] is not None
+    assert result["path_ratio_alert"]["ok"] is True
+    assert result["path_ratio_alert"]["floor"] == 0.6
     assert Path(result["mermaid_path"]).is_file()
 
 
@@ -137,6 +147,18 @@ def test_path_ratios_cleanse_reject_quarantine() -> None:
     assert round(family["cleanse"] + family["reject"] + family["quarantine"], 4) == 1.0
     assert computed["bronze_split"]["ratios"]["cleanse"] == 0.8571
     assert computed["bronze_split"]["ratios"]["reject"] == 0.1429
+
+
+def test_path_ratio_alert_cleanse_floor() -> None:
+    graph = spec_graph()
+    green = path_ratio_alert(graph["path_ratios"], cleanse_floor=0.60)
+    assert green["ok"] is True
+    red = path_ratio_alert(graph["path_ratios"], cleanse_floor=0.80)
+    assert red["ok"] is False
+    assert red["status"] == "breached"
+    assert red["value"] == 0.6667
+    assert red["floor"] == 0.8
+    assert describe_lineage(cleanse_floor=0.80)["ok"] is False
 
 
 def test_attach_edge_weights_uses_destination_counts() -> None:
@@ -159,4 +181,6 @@ def test_cli_lineage(tmp_path: Path, capsys: object) -> None:
     assert dest.is_file()
     assert '"ok": true' in captured.out
     assert "bronze" in captured.out
+    assert "path_ratio_alert" in captured.out
     assert "silver_quarantine" in dest.read_text(encoding="utf-8")
+    assert main(["lineage", "--cleanse-floor", "0.8"]) == 1
