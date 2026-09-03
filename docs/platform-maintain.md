@@ -1,19 +1,20 @@
 # Platform compact after retention
 
 Post-v1.0 increment: a scheduled **expire-then-compact** job that covers
-every medallion zone. Zone commands stay available (`bronze-maintain`,
-`silver-maintain`, `maintain`). `platform-maintain` is the operator path
-that runs them in order.
+every medallion zone plus Silver quarantine. Zone commands stay available
+(`bronze-maintain`, `silver-maintain`, `quarantine-maintain`, `maintain`).
+`platform-maintain` is the operator path that runs them in order.
 
-Each zone expires old Hive partitions first so compaction never rewrites
-objects that the next step would delete.
+Each zone expires old Hive prefixes first so compaction never rewrites
+objects that the next step would delete. Quarantine runs after Silver so
+the cleaned-event path is maintained before the failed-row side path.
 
 ## What it measures
 
 * Job: `platform.maintain`
-* Order: Bronze → Silver → Gold (each zone: expire → compact)
+* Order: Bronze → Silver → Quarantine → Gold (each: expire → compact)
 * Live path: reuse `lakehouse.bronze_maintain`, `lakehouse.silver_maintain`,
-  `lakehouse.maintain`
+  `lakehouse.quarantine_maintain`, `lakehouse.maintain`
 * Spec path: the hermetic fixtures from those modules
 
 When S3 is unreachable the command still evaluates against the hermetic
