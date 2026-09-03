@@ -17,7 +17,7 @@ from lakehouse.lineage import (
 def test_spec_graph_covers_medallion_path() -> None:
     graph = spec_graph()
     ids = {n["id"] for n in graph["nodes"]}
-    assert ids == {"bronze", "silver", "quality", "gold", "runs"}
+    assert ids == {"bronze", "silver", "quality", "gold", "gold_quarantine", "runs"}
     relations = {(e["from"], e["to"], e["relation"]) for e in graph["edges"]}
     assert relations == set(SPEC_EDGES)
     assert graph["ok"] is True
@@ -35,6 +35,9 @@ def test_snapshot_and_mermaid() -> None:
     assert "cleanse" in page
     assert "gate" in page
     assert "aggregate" in page
+    assert "gold_quarantine" in page
+    assert "reject" in page
+    assert "unreadable" in page
 
 
 def test_write_mermaid_and_describe(tmp_path: Path) -> None:
@@ -44,6 +47,7 @@ def test_write_mermaid_and_describe(tmp_path: Path) -> None:
     result = describe_lineage(out=str(tmp_path / "cli.mmd"))
     assert result["ok"] is True
     assert "bronze" in result["node_ids"]
+    assert "gold_quarantine" in result["node_ids"]
     assert result["edge_count"] == len(SPEC_EDGES)
     assert Path(result["mermaid_path"]).is_file()
 
