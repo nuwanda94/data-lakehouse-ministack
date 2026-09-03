@@ -409,7 +409,12 @@ def _cmd_quality_dashboard(args: argparse.Namespace) -> int:
 def _cmd_lineage(args: argparse.Namespace) -> int:
     from lakehouse.lineage import describe_lineage
 
-    return _ok(describe_lineage(out=getattr(args, "out", None)))
+    return _ok(
+        describe_lineage(
+            out=getattr(args, "out", None),
+            cleanse_floor=getattr(args, "cleanse_floor", None),
+        )
+    )
 
 
 def _cmd_sla(args: argparse.Namespace) -> int:
