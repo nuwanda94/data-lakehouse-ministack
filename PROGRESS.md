@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-04 02:00 IST
+- Completed: feat: Lineage path-ratio alert on quality-split reject ceiling
+- Next candidate: feat: Lineage path-ratio alert on Bronze-split reject ceiling
+- Notes: Quality-split reject share is compared to `LAKEHOUSE_LINEAGE_QUALITY_REJECT_CEILING` (default 0.50) or `--quality-reject-ceiling`. Spec fixtures stay green at 0.3333. Family / Bronze / quality aggregate floor / quality reject ceiling all flip `path_ratio_alert.ok`. CLI JSON `cuts.quality_split` now includes `reject_share` + `ceiling`. Mermaid records `%% quality-split alert: … reject … ceiling …`. `python -m lakehouse lineage` exits 1 on a quality-split reject-ceiling breach. Docs in `docs/lineage.md`.
+
 ## 2026-09-04 01:10 IST
 - Completed: feat: Lineage path-ratio alert on quality-split aggregate floor
 - Next candidate: feat: Lineage path-ratio alert on quality-split reject ceiling
