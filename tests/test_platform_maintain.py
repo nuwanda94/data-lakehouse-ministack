@@ -20,12 +20,13 @@ def test_spec_snapshot_chains_all_zones() -> None:
     assert snap["job"] == JOB
     assert snap["order"] == list(ORDER)
     assert snap["zones"] == list(ZONES)
-    assert snap["expire_count"] == 3
-    assert snap["compact_count"] == 3
+    assert snap["expire_count"] == 4
+    assert snap["compact_count"] == 4
     assert snap["apply"] is False
     assert snap["ok"] is True
     assert snap["bronze"]["job"] == "bronze.maintain"
     assert snap["silver"]["job"] == "silver.maintain"
+    assert snap["quarantine"]["job"] == "quarantine.maintain"
     assert snap["gold"]["job"] == "gold.maintain"
 
 
@@ -37,8 +38,9 @@ def test_collect_and_describe() -> None:
     assert result["job"] == JOB
     assert result["bronze_job"] == "bronze.maintain"
     assert result["silver_job"] == "silver.maintain"
+    assert result["quarantine_job"] == "quarantine.maintain"
     assert result["gold_job"] == "gold.maintain"
-    assert (result["expire_count"] or 0) + (result["compact_count"] or 0) >= 3
+    assert (result["expire_count"] or 0) + (result["compact_count"] or 0) >= 4
 
 
 def test_cli_platform_maintain(capsys: object) -> None:
@@ -46,6 +48,7 @@ def test_cli_platform_maintain(capsys: object) -> None:
     captured = capsys.readouterr()  # type: ignore[attr-defined]
     assert '"job": "platform.maintain"' in captured.out
     assert '"order"' in captured.out
+    assert '"quarantine.maintain"' in captured.out
     assert '"expire_count"' in captured.out
     assert '"compact_count"' in captured.out
     assert code == 0
