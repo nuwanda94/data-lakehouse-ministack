@@ -112,9 +112,7 @@ def _cmd_maintain(args: argparse.Namespace) -> int:
 def _cmd_bret(args: argparse.Namespace) -> int:
     from lakehouse.bronze_retention import describe_bronze_retention
 
-    return _ok(
-        describe_bronze_retention(retention_days=args.retention_days, apply=args.apply)
-    )
+    return _ok(describe_bronze_retention(retention_days=args.retention_days, apply=args.apply))
 
 
 def _cmd_bcompact(args: argparse.Namespace) -> int:
@@ -138,9 +136,7 @@ def _cmd_bmaintain(args: argparse.Namespace) -> int:
 def _cmd_sret(args: argparse.Namespace) -> int:
     from lakehouse.silver_retention import describe_silver_retention
 
-    return _ok(
-        describe_silver_retention(retention_days=args.retention_days, apply=args.apply)
-    )
+    return _ok(describe_silver_retention(retention_days=args.retention_days, apply=args.apply))
 
 
 def _cmd_scompact(args: argparse.Namespace) -> int:
