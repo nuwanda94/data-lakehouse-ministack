@@ -1,15 +1,12 @@
-"""Live snapshot + Mermaid/CLI helpers for dataset lineage."""
+"""Live snapshot helpers for dataset lineage."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
 
 from lakehouse.config import Settings, load_settings
 from lakehouse.lineage import (
-    QUARANTINE_NODE_IDS,
-    RATIO_FAMILIES,
     SPEC_EDGES,
     ZONES,
     _endpoint_reachable,
