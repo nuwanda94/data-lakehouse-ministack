@@ -23,18 +23,22 @@ def render_mermaid(snapshot: dict[str, Any] | None = None) -> str:
     ratios = graph.get("path_ratios") or snap.get("path_ratios") or path_ratios(graph)
     family = ratios.get("ratios") or {}
     alert = (
-        graph.get("path_ratio_alert")
-        or snap.get("path_ratio_alert")
-        or path_ratio_alert(ratios)
+        graph.get("path_ratio_alert") or snap.get("path_ratio_alert") or path_ratio_alert(ratios)
     )
     q_ids = set(QUARANTINE_NODE_IDS)
     lines = ["flowchart LR"]
     if family:
         parts = " ".join(f"{name} {family[name]}" for name in RATIO_FAMILIES if name in family)
         lines.append(f"  %% path ratios: {parts}")
+    bronze_cut = (alert.get("cuts") or {}).get("bronze_split") or {}
     lines.append(
         "  %% path-ratio alert: "
         f"{alert.get('status')} cleanse {alert.get('value')} floor {alert.get('floor')}"
+    )
+    lines.append(
+        "  %% bronze-split alert: "
+        f"{'ok' if bronze_cut.get('ok', True) else 'breached'} "
+        f"cleanse {bronze_cut.get('value')} floor {bronze_cut.get('floor')}"
     )
     lines.append('  subgraph quarantine["quarantine side paths"]')
     for node in graph["nodes"]:
@@ -72,12 +76,17 @@ def describe_lineage(
     *,
     out: str | None = None,
     cleanse_floor: float | None = None,
+    bronze_cleanse_floor: float | None = None,
 ) -> dict[str, Any]:
     snap = collect_snapshot()
     graph = snap["live"] if snap["backend"] == "live" else snap["spec"]
     subgraph = snap.get("quarantine_subgraph") or quarantine_subgraph(graph)
     ratios = graph.get("path_ratios") or snap.get("path_ratios") or path_ratios(graph)
-    alert = path_ratio_alert(ratios, cleanse_floor=cleanse_floor)
+    alert = path_ratio_alert(
+        ratios,
+        cleanse_floor=cleanse_floor,
+        bronze_cleanse_floor=bronze_cleanse_floor,
+    )
     result: dict[str, Any] = {
         "ok": bool(alert["ok"]),
         "backend": snap["backend"],

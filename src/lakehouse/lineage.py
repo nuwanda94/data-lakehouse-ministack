@@ -11,8 +11,9 @@ happy-path edges. Edge weights fold into **path ratios**
 (cleanse vs reject vs quarantine) plus Bronze and quality cuts.
 
 A **path-ratio alert** compares the family cleanse share against
-``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` (default 0.60). The CLI exits 1
-when the floor is missed.
+``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` (default 0.60) and the Bronze-split
+cleanse share against ``LAKEHOUSE_LINEAGE_BRONZE_CLEANSE_FLOOR``
+(default 0.80). The CLI exits 1 when either floor is missed.
 
 ``python -m lakehouse lineage`` prints JSON. ``--out`` writes Mermaid.
 """
@@ -68,6 +69,8 @@ RATIO_FAMILIES: dict[str, tuple[str, ...]] = {
 
 DEFAULT_CLEANSE_FLOOR = 0.60
 CLEANSE_FLOOR_ENV = "LAKEHOUSE_LINEAGE_CLEANSE_FLOOR"
+DEFAULT_BRONZE_CLEANSE_FLOOR = 0.80
+BRONZE_CLEANSE_FLOOR_ENV = "LAKEHOUSE_LINEAGE_BRONZE_CLEANSE_FLOOR"
 
 SPEC_EDGES: tuple[tuple[str, str, str], ...] = (
     ("bronze", "silver", "cleanse"),
@@ -203,35 +206,50 @@ def resolve_cleanse_floor(explicit: float | None = None) -> float:
     return DEFAULT_CLEANSE_FLOOR
 
 
+def resolve_bronze_cleanse_floor(explicit: float | None = None) -> float:
+    """Bronze-split cleanse-share floor (0–1)."""
+
+    if explicit is not None:
+        return float(explicit)
+    raw = os.environ.get(BRONZE_CLEANSE_FLOOR_ENV)
+    if raw and raw.strip():
+        return float(raw)
+    return DEFAULT_BRONZE_CLEANSE_FLOOR
+
+
 def path_ratio_alert(
     ratios: dict[str, Any],
     *,
     cleanse_floor: float | None = None,
+    bronze_cleanse_floor: float | None = None,
 ) -> dict[str, Any]:
-    """Alert when the family cleanse share drops below the floor.
+    """Alert when family or Bronze-split cleanse share drops below floor.
 
-    Spec fixtures sit at 0.6667 cleanse, so the default 0.60 floor is
-    green. Operators raise ``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` (or pass
-    ``--cleanse-floor``) when a pipeline should fail the lineage check.
-    Bronze-split cleanse share is reported as a secondary cut using the
-    same floor; it does not flip the top-level ``ok`` by itself.
+    Spec fixtures sit at 0.6667 family cleanse and 0.8571 Bronze-split
+    cleanse, so the defaults (0.60 / 0.80) are green. Operators raise
+    ``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` / ``--cleanse-floor`` or
+    ``LAKEHOUSE_LINEAGE_BRONZE_CLEANSE_FLOOR`` / ``--bronze-cleanse-floor``
+    when a pipeline should fail the lineage check. Either cut can flip
+    the top-level ``ok``.
     """
 
     floor = resolve_cleanse_floor(cleanse_floor)
+    bronze_floor = resolve_bronze_cleanse_floor(bronze_cleanse_floor)
     family = ratios.get("ratios") or {}
     try:
         cleanse_share = float(family.get("cleanse") or 0.0)
     except (TypeError, ValueError):
         cleanse_share = 0.0
     total = int(ratios.get("total") or 0)
-    ok = total <= 0 or cleanse_share >= floor
+    family_ok = total <= 0 or cleanse_share >= floor
     bronze = (ratios.get("bronze_split") or {}).get("ratios") or {}
     try:
         bronze_cleanse = float(bronze.get("cleanse") or 0.0)
     except (TypeError, ValueError):
         bronze_cleanse = 0.0
     bronze_total = int((ratios.get("bronze_split") or {}).get("total") or 0)
-    bronze_ok = bronze_total <= 0 or bronze_cleanse >= floor
+    bronze_ok = bronze_total <= 0 or bronze_cleanse >= bronze_floor
+    ok = family_ok and bronze_ok
     return {
         "metric": "cleanse_share",
         "value": cleanse_share,
@@ -243,12 +261,12 @@ def path_ratio_alert(
                 "metric": "cleanse_share",
                 "value": cleanse_share,
                 "floor": floor,
-                "ok": ok,
+                "ok": family_ok,
             },
             "bronze_split": {
                 "metric": "cleanse_share",
                 "value": bronze_cleanse,
-                "floor": floor,
+                "floor": bronze_floor,
                 "ok": bronze_ok,
             },
         },
@@ -373,7 +391,12 @@ def describe_lineage(
     *,
     out: str | None = None,
     cleanse_floor: float | None = None,
+    bronze_cleanse_floor: float | None = None,
 ) -> dict[str, Any]:
     from lakehouse.lineage_render import describe_lineage as _impl
 
-    return _impl(out=out, cleanse_floor=cleanse_floor)
+    return _impl(
+        out=out,
+        cleanse_floor=cleanse_floor,
+        bronze_cleanse_floor=bronze_cleanse_floor,
+    )
