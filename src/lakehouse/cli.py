@@ -100,6 +100,7 @@ def main(argv: list[str] | None = None) -> int:
 
     _ret("retention", "Plan Gold metric-object expiry")
     _ret("quarantine-retention", "Plan Silver quarantine TTL expiry")
+    _ret("gold-quarantine-retention", "Plan Gold quarantine partition expiry")
     _ret("silver-retention", "Plan Silver cleaned-event expiry")
     _ret("bronze-retention", "Plan Bronze raw event expiry")
     _compact("compact", "Plan Gold metric-object compact")
@@ -161,6 +162,7 @@ def dispatch(args: argparse.Namespace) -> int:
         "sla": _cmd_sla,
         "retention": _cmd_retention,
         "quarantine-retention": _cmd_qret,
+        "gold-quarantine-retention": _cmd_gqret,
         "silver-retention": _cmd_sret,
         "bronze-retention": _cmd_bret,
         "compact": _cmd_compact,
@@ -274,6 +276,17 @@ def _cmd_qret(args: argparse.Namespace) -> int:
 
     return _ok(
         describe_quarantine_retention(
+            retention_days=args.retention_days,
+            apply=args.apply,
+        )
+    )
+
+
+def _cmd_gqret(args: argparse.Namespace) -> int:
+    from lakehouse.gold_quarantine_retention import describe_gold_quarantine_retention
+
+    return _ok(
+        describe_gold_quarantine_retention(
             retention_days=args.retention_days,
             apply=args.apply,
         )
