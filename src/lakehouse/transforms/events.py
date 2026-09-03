@@ -123,6 +123,65 @@ def cleanse_to_silver(
     return batch
 
 
+GOLD_QUARANTINE_REASONS = frozenset(
+    {
+        "missing_dt",
+        "unknown_event_type",
+        "non_positive_events",
+        "negative_amount",
+        "non_numeric_measures",
+        "unreadable_silver",
+    }
+)
+
+
+def gold_metric_failures(row: dict[str, Any]) -> list[str]:
+    """Named contract checks for a Gold daily-metric row.
+
+    Stable reason strings so the Gold quarantine prefix can be compacted
+    and expired the same way Silver quarantine is.
+    """
+
+    reasons: list[str] = []
+    dt = str(row.get("dt") or "").strip()
+    if not dt:
+        reasons.append("missing_dt")
+
+    event_type = str(row.get("event_type") or "").strip()
+    if event_type not in KNOWN_EVENT_TYPES:
+        reasons.append("unknown_event_type")
+
+    try:
+        events = int(row.get("events", 0))
+        amount = float(row.get("amount_usd", 0))
+    except (TypeError, ValueError):
+        reasons.append("non_numeric_measures")
+        return reasons
+
+    if events <= 0:
+        reasons.append("non_positive_events")
+    if amount < 0:
+        reasons.append("negative_amount")
+    return reasons
+
+
+def partition_gold_metrics(
+    rows: Sequence[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[QuarantineRow]]:
+    """Split aggregated Gold rows into contract-valid vs rejected metrics."""
+
+    accepted: list[dict[str, Any]] = []
+    rejected: list[QuarantineRow] = []
+    for row in rows:
+        payload = dict(row)
+        reasons = gold_metric_failures(payload)
+        if reasons:
+            rejected.append(QuarantineRow(payload=payload, reason="+".join(reasons)))
+        else:
+            accepted.append(payload)
+    return accepted, rejected
+
+
 def aggregate_gold(events: Iterable[CommerceEvent]) -> list[dict[str, Any]]:
     """Daily metrics by event_type. Empty input → empty list."""
     by_day_type: dict[tuple[str, str], dict[str, float]] = defaultdict(
