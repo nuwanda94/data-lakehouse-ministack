@@ -54,6 +54,12 @@ How to cut a release: [`docs/release.md`](docs/release.md).
   paths (`quarantine_subgraph` in the CLI JSON; Mermaid
   `subgraph quarantine`).
 
+### Changed
+
+- README principal-engineer refresh: truthful status, data-model grain,
+  guarantees/failure modes, quarantine-aware architecture diagram,
+  capability map, CI badge, and trimmed ops tables.
+
 ## [0.1.0] - 2026-09-01
 
 Working lakehouse on MiniStack: Bronze → Silver → Gold with quality,
