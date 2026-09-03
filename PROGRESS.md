@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-03 15:05 IST
+- Completed: chore: include gold-quarantine in platform-maintain
+- Next candidate: feat: Gold quarantine lineage edges (metrics vs rejected-metric side path)
+- Notes: `platform-maintain` now chains Bronze → Silver → Quarantine → Gold → Gold quarantine. Spec fixtures expire 5 partitions and compact 5 fragmented prefixes. Describe JSON exposes `gold_quarantine_job`. Docs in `docs/platform-maintain.md`.
+
 ## 2026-09-03 14:15 IST
 - Completed: chore: gold-quarantine compact-after-retention
 - Next candidate: chore: include gold-quarantine in platform-maintain
