@@ -93,6 +93,7 @@ Track progress of the medallion lakehouse. Highest priority incomplete items fir
 - [x] feat: Combined quarantine lineage subgraph (Silver + Gold side paths)
 - [x] feat: Lineage edge weights from live object counts
 - [x] feat: Lineage path ratios (cleanse vs reject vs quarantine)
+- [x] feat: Lineage path-ratio alert threshold (cleanse share floor)
 
 ## Progress Log
 See `PROGRESS.md` (updated by the hourly-chore-feat automation).

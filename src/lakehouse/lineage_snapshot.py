@@ -11,6 +11,7 @@ from lakehouse.lineage import (
     ZONES,
     _endpoint_reachable,
     attach_edge_weights,
+    path_ratio_alert,
     path_ratios,
     quarantine_subgraph,
     spec_graph,
@@ -51,6 +52,7 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
             "zones": list(ZONES),
             "quarantine_subgraph": spec["quarantine_subgraph"],
             "path_ratios": spec["path_ratios"],
+            "path_ratio_alert": spec["path_ratio_alert"],
         }
     live_runs = _live_runs(resolved)
     bronze_n = _live_object_count(resolved, resolved.bronze_bucket, "events/")
@@ -133,6 +135,8 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
     }
     live["quarantine_subgraph"] = quarantine_subgraph(live)
     live["path_ratios"] = path_ratios(live)
+    live["path_ratio_alert"] = path_ratio_alert(live["path_ratios"])
+    live["ok"] = bool(live_ok) and bool(live["path_ratio_alert"]["ok"])
     return {
         "backend": "live" if live_ok else "spec",
         "spec": spec,
@@ -142,4 +146,7 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
         if live_ok
         else spec["quarantine_subgraph"],
         "path_ratios": live["path_ratios"] if live_ok else spec["path_ratios"],
+        "path_ratio_alert": live["path_ratio_alert"]
+        if live_ok
+        else spec["path_ratio_alert"],
     }
