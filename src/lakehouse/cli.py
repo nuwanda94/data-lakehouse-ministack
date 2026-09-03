@@ -115,6 +115,7 @@ def main(argv: list[str] | None = None) -> int:
     p_qdash.add_argument("--out", default=None)
     p_lineage = add("lineage", "Print lineage graph")
     p_lineage.add_argument("--out", default=None)
+    p_lineage.add_argument("--cleanse-floor", type=float, default=None)
     p_sla = add("sla", "Print SLA status")
     p_sla.add_argument("--max-age-hours", type=float, default=None)
 
