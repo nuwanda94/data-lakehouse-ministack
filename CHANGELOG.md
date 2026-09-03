@@ -37,6 +37,9 @@ How to cut a release: [`docs/release.md`](docs/release.md).
 - Quarantine compact-after-retention (`python -m lakehouse quarantine-maintain`,
   `make quarantine-maintain`).
 - Platform maintain includes Silver quarantine (`platform-maintain` now runs Bronze → Silver → Quarantine → Gold).
+- Gold quarantine / rejected-metric side path (`gold.handler` writes
+  contract-invalid aggregates and unreadable Silver payloads under
+  Gold `quarantine/`, never into `metrics/`).
 
 ## [0.1.0] - 2026-09-01
 
