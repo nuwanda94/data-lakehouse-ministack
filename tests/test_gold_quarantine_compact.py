@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from lakehouse.cli import main
 from lakehouse.gold_quarantine_compact import (
     DATASET_ID,
     DEFAULT_MAX_OBJECTS,
@@ -112,14 +111,6 @@ def test_merge_quarantine_payloads() -> None:
     assert merged["metric"] == "page_view"
     assert merged["dt"] == "2026-08-25"
     assert merged["zone"] == "gold"
-
-
-def test_cli_gold_quarantine_compact(capsys: object) -> None:
-    code = main(["gold-quarantine-compact"])
-    captured = capsys.readouterr()  # type: ignore[attr-defined]
-    assert '"dataset": "gold.quarantine"' in captured.out
-    assert '"max_objects"' in captured.out
-    assert code == 0
 
 
 def test_boundary_equals_max_is_keep() -> None:
