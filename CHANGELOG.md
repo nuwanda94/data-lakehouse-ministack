@@ -53,6 +53,8 @@ How to cut a release: [`docs/release.md`](docs/release.md).
 - Combined quarantine lineage subgraph grouping Silver + Gold side
   paths (`quarantine_subgraph` in the CLI JSON; Mermaid
   `subgraph quarantine`).
+- Lineage path-ratio alert on the family cleanse share
+  (`LAKEHOUSE_LINEAGE_CLEANSE_FLOOR` / `--cleanse-floor`, default 0.60).
 
 ### Changed
 
