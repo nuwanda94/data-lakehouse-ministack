@@ -6,7 +6,8 @@ from typing import Any
 
 from lakehouse.config import Settings
 from lakehouse.gold.handler import transform_gold
-from lakehouse.pipeline.gold import gold_key
+from lakehouse.pipeline.gold import gold_key, gold_quarantine_key
+from lakehouse.transforms.events import gold_metric_failures, partition_gold_metrics
 
 
 def _settings() -> Settings:
@@ -221,3 +222,48 @@ def test_empty_silver_writes_no_gold() -> None:
     assert result["status"] == "succeeded"
     assert result["gold_written"] == []
     assert result["aggregates"] == []
+    assert result["quarantine_written"] == []
+
+
+def test_unreadable_silver_lands_in_gold_quarantine() -> None:
+    s3 = FakeS3()
+    ddb = FakeDDB()
+    s3.put_object(
+        Bucket="s",
+        Key="events/event_type=purchase/dt=2026-01-02/evt-1.json",
+        Body=json.dumps(PURCHASE),
+    )
+    s3.put_object(
+        Bucket="s",
+        Key="events/event_type=purchase/dt=2026-01-02/broken.json",
+        Body=json.dumps({"event_id": "broken"}),
+    )
+    result = transform_gold(None, settings=_settings(), s3=s3, ddb=ddb)
+    assert result["status"] == "succeeded"
+    assert result["silver_read"] == 1
+    assert result["skipped_invalid"] == 1
+    assert result["gold_written"] == [gold_key(metric="purchase", day="2026-01-02")]
+    qkey = gold_quarantine_key(reason="unreadable_silver", metric="unknown", day="unknown")
+    assert qkey in result["quarantine_written"]
+    body = json.loads(s3.objects[("g", qkey)])
+    assert body["reason"] == "unreadable_silver"
+    assert body["zone"] == "gold"
+    assert "metrics/metric=purchase" in result["gold_written"][0]
+    assert qkey not in result["gold_written"]
+
+
+def test_partition_gold_metrics_rejects_contract_violations() -> None:
+    accepted, rejected = partition_gold_metrics(
+        [
+            {"dt": "2026-01-02", "event_type": "purchase", "events": 2, "amount_usd": 10.0},
+            {"dt": "", "event_type": "ghost", "events": 0, "amount_usd": -4},
+            {"dt": "2026-01-03", "event_type": "page_view", "events": "x", "amount_usd": 1},
+        ]
+    )
+    assert len(accepted) == 1
+    assert accepted[0]["event_type"] == "purchase"
+    assert [row.reason for row in rejected] == [
+        "missing_dt+unknown_event_type+non_positive_events+negative_amount",
+        "non_numeric_measures",
+    ]
+    assert gold_metric_failures(accepted[0]) == []
