@@ -17,6 +17,11 @@ Valid rows still go to `metrics/metric={event_type}/dt={day}/part-000.json`
 plus the DynamoDB gold-metrics table. Quarantined rows **never** get a
 DynamoDB metric item.
 
+Lineage treats this as a first-class side path:
+`quality -->|reject| gold_quarantine` and
+`silver -->|unreadable| gold_quarantine` (see
+[`lineage.md`](lineage.md)).
+
 ## Reasons
 
 `lakehouse.transforms.events.gold_metric_failures` emits stable names:
