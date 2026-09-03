@@ -7,8 +7,10 @@ from lakehouse.lineage import (
     QUARANTINE_NODE_IDS,
     SPEC_EDGES,
     ZONES,
+    attach_edge_weights,
     collect_snapshot,
     describe_lineage,
+    node_object_counts,
     quarantine_subgraph,
     render_mermaid,
     spec_graph,
@@ -30,6 +32,13 @@ def test_spec_graph_covers_medallion_path() -> None:
     }
     relations = {(e["from"], e["to"], e["relation"]) for e in graph["edges"]}
     assert relations == set(SPEC_EDGES)
+    assert all("weight" in e for e in graph["edges"])
+    weights = {(e["from"], e["to"], e["relation"]): e["weight"] for e in graph["edges"]}
+    assert weights[("bronze", "silver", "cleanse")] == 18
+    assert weights[("bronze", "silver_quarantine", "reject")] == 3
+    assert weights[("quality", "gold", "aggregate")] == 1
+    assert weights[("quality", "gold_quarantine", "reject")] == 2
+    assert weights[("silver_quarantine", "runs", "run_metadata")] == 1
     assert ("bronze", "silver_quarantine", "reject") in relations
     assert ("quality", "silver_quarantine", "quarantine") in relations
     assert graph["ok"] is True
@@ -41,6 +50,11 @@ def test_spec_graph_covers_medallion_path() -> None:
     assert subgraph["id"] == "quarantine"
     assert subgraph["node_ids"] == list(QUARANTINE_NODE_IDS)
     assert subgraph["objects"] == 5
+    assert subgraph["incoming_weight"] == 3 + 3 + 2 + 2
+    assert subgraph["outgoing_weight"] == 1 + 1
+    page = render_mermaid({"backend": "spec", "spec": graph, "live": None})
+    assert "bronze -->|cleanse 18| silver" in page
+    assert "quality -->|reject 2| gold_quarantine" in page
     incoming = {(e["from"], e["to"], e["relation"]) for e in subgraph["incoming"]}
     assert ("bronze", "silver_quarantine", "reject") in incoming
     assert ("quality", "silver_quarantine", "quarantine") in incoming
@@ -66,6 +80,8 @@ def test_snapshot_and_mermaid() -> None:
     assert "unreadable" in page
     assert "subgraph quarantine" in page
     assert "quarantine side paths" in page
+    assert "cleanse 18" in page or "cleanse" in page
+    assert "|cleanse" in page
 
 
 def test_write_mermaid_and_describe(tmp_path: Path) -> None:
@@ -81,6 +97,13 @@ def test_write_mermaid_and_describe(tmp_path: Path) -> None:
     assert result["quarantine_subgraph"]["node_ids"] == list(QUARANTINE_NODE_IDS)
     assert result["quarantine_subgraph"]["incoming_count"] == 4
     assert result["quarantine_subgraph"]["outgoing_count"] == 2
+    assert "edge_weights" in result
+    assert len(result["edge_weights"]) == len(SPEC_EDGES)
+    cleanse = next(
+        w for w in result["edge_weights"] if w["from"] == "bronze" and w["to"] == "silver"
+    )
+    assert cleanse["relation"] == "cleanse"
+    assert cleanse["weight"] is not None
     assert Path(result["mermaid_path"]).is_file()
 
 
@@ -88,6 +111,19 @@ def test_quarantine_subgraph_helper() -> None:
     subgraph = quarantine_subgraph(spec_graph())
     assert {n["id"] for n in subgraph["nodes"]} == set(QUARANTINE_NODE_IDS)
     assert subgraph["label"] == "quarantine side paths"
+
+
+def test_attach_edge_weights_uses_destination_counts() -> None:
+    nodes = [
+        {"id": "bronze", "objects": 10},
+        {"id": "silver", "objects": 7},
+    ]
+    edges = attach_edge_weights(
+        nodes,
+        [{"from": "bronze", "to": "silver", "relation": "cleanse"}],
+    )
+    assert edges[0]["weight"] == 7
+    assert node_object_counts(nodes)["silver"] == 7
 
 
 def test_cli_lineage(tmp_path: Path, capsys: object) -> None:
