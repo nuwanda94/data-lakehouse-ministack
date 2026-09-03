@@ -2,8 +2,9 @@
 
 Reads Silver event JSON, runs ``aggregate_gold``, writes one Hive-partitioned
 object per (event_type, day) plus a matching DynamoDB row in the gold-metrics
-table. Pipeline-run metadata lands in DynamoDB so operators can observe the
-batch.
+table. Contract-invalid aggregates and unreadable Silver payloads land under
+Gold ``quarantine/`` instead of ``metrics/``. Pipeline-run metadata lands in
+DynamoDB so operators can observe the batch.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from typing import Any
 from lakehouse.aws import client
 from lakehouse.config import Settings, load_settings
 from lakehouse.models import CommerceEvent
-from lakehouse.pipeline.gold import gold_key
+from lakehouse.pipeline.gold import gold_key, gold_quarantine_key
 from lakehouse.pipeline.idempotency import (
     deterministic_run_id,
     idempotency_key,
@@ -23,7 +24,7 @@ from lakehouse.pipeline.idempotency import (
 )
 from lakehouse.pipeline.runs import complete_run, new_run, persist_run
 from lakehouse.storage import EVENTS_PREFIX, keys_from_event, load_pairs, put_json
-from lakehouse.transforms.events import aggregate_gold
+from lakehouse.transforms.events import QuarantineRow, aggregate_gold, partition_gold_metrics
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,6 +57,33 @@ def _write_gold(
     return written
 
 
+def _write_gold_quarantine(
+    s3: Any,
+    *,
+    gold_bucket: str,
+    rows: list[QuarantineRow],
+) -> list[str]:
+    """Land rejected metrics under Gold ``quarantine/`` — never in ``metrics/``."""
+
+    written: list[str] = []
+    for row in rows:
+        metric = str(row.payload.get("event_type") or "unknown")
+        day = str(row.payload.get("dt") or "unknown")
+        key = gold_quarantine_key(reason=row.reason, metric=metric, day=day)
+        put_json(
+            s3,
+            gold_bucket,
+            key,
+            {
+                "reason": row.reason,
+                "payload": row.payload,
+                "zone": "gold",
+            },
+        )
+        written.append(key)
+    return written
+
+
 def transform_gold(
     event: dict[str, Any] | None = None,
     *,
@@ -76,12 +104,22 @@ def transform_gold(
 
     events: list[CommerceEvent] = []
     invalid = 0
+    rejected: list[QuarantineRow] = []
     for key, payload in zip(source_keys, payloads, strict=True):
         try:
             events.append(CommerceEvent.model_validate(payload))
         except Exception:  # noqa: BLE001
             invalid += 1
-            LOGGER.warning("skipping unreadable silver object %s", key)
+            LOGGER.warning("quarantining unreadable silver object %s", key)
+            rejected.append(
+                QuarantineRow(
+                    payload={
+                        "source_key": key,
+                        "payload": payload if isinstance(payload, dict) else {"_raw": payload},
+                    },
+                    reason="unreadable_silver",
+                )
+            )
 
     fingerprint = [*source_keys, *[f"missing:{m}" for m in missing]]
     run_id = deterministic_run_id("gold", *fingerprint) if fingerprint else None
@@ -96,18 +134,26 @@ def transform_gold(
                 silver_read=int(existing.metrics.get("silver_read", 0) or 0),
                 skipped_invalid=int(existing.metrics.get("skipped_invalid", 0) or 0),
                 gold_written=[],
+                quarantine_written=[],
                 aggregates=[],
                 idempotency_key=key,
             )
 
     run = new_run(zone="gold", status="running", run_id=run_id)
     rows = aggregate_gold(events)
+    accepted, rejected_metrics = partition_gold_metrics(rows)
+    rejected.extend(rejected_metrics)
     gold_keys = _write_gold(
         s3_client,
         ddb_client,
         gold_bucket=resolved.gold_bucket,
         metrics_table=resolved.gold_metrics_table,
-        rows=rows,
+        rows=accepted,
+    )
+    quarantine_keys = _write_gold_quarantine(
+        s3_client,
+        gold_bucket=resolved.gold_bucket,
+        rows=rejected,
     )
 
     metrics: dict[str, int | float | str] = {
@@ -115,6 +161,7 @@ def transform_gold(
         "skipped_invalid": invalid,
         "gold_written": len(gold_keys),
         "metrics_written": len(gold_keys),
+        "quarantine_written": len(quarantine_keys),
     }
     if key:
         metrics["idempotency_key"] = key
@@ -140,7 +187,8 @@ def transform_gold(
         "silver_read": int(metrics["silver_read"]),
         "skipped_invalid": invalid,
         "gold_written": gold_keys,
-        "aggregates": rows,
+        "quarantine_written": quarantine_keys,
+        "aggregates": accepted,
         "metrics": metrics,
         "idempotent_replay": False,
         "idempotency_key": key,
