@@ -72,6 +72,12 @@ def test_spec_graph_covers_medallion_path() -> None:
     assert alert["floor"] == 0.6
     assert alert["ok"] is True
     assert alert["status"] == "ok"
+    quality_cut = alert["cuts"]["quality_split"]
+    assert quality_cut["value"] == 0.1667
+    assert quality_cut["floor"] == 0.15
+    assert quality_cut["reject_share"] == 0.3333
+    assert quality_cut["ceiling"] == 0.5
+    assert quality_cut["ok"] is True
     page = render_mermaid({"backend": "spec", "spec": graph, "live": None})
     assert "bronze -->|cleanse 18| silver" in page
     assert "quality -->|reject 2| gold_quarantine" in page
@@ -161,6 +167,21 @@ def test_path_ratio_alert_cleanse_floor() -> None:
     assert describe_lineage(cleanse_floor=0.80)["ok"] is False
 
 
+def test_path_ratio_alert_quality_reject_ceiling() -> None:
+    graph = spec_graph()
+    green = path_ratio_alert(graph["path_ratios"], quality_reject_ceiling=0.50)
+    assert green["ok"] is True
+    assert green["cuts"]["quality_split"]["reject_share"] == 0.3333
+    assert green["cuts"]["quality_split"]["ceiling"] == 0.5
+    red = path_ratio_alert(graph["path_ratios"], quality_reject_ceiling=0.20)
+    assert red["ok"] is False
+    assert red["status"] == "breached"
+    assert red["cuts"]["quality_split"]["ok"] is False
+    assert red["cuts"]["quality_split"]["reject_share"] == 0.3333
+    assert red["cuts"]["quality_split"]["ceiling"] == 0.2
+    assert describe_lineage(quality_reject_ceiling=0.20)["ok"] is False
+
+
 def test_attach_edge_weights_uses_destination_counts() -> None:
     nodes = [
         {"id": "bronze", "objects": 10},
@@ -184,3 +205,4 @@ def test_cli_lineage(tmp_path: Path, capsys: object) -> None:
     assert "path_ratio_alert" in captured.out
     assert "silver_quarantine" in dest.read_text(encoding="utf-8")
     assert main(["lineage", "--cleanse-floor", "0.8"]) == 1
+    assert main(["lineage", "--quality-reject-ceiling", "0.2"]) == 1
