@@ -149,7 +149,10 @@ def main(argv: list[str] | None = None) -> int:
     _maintain("maintain", "Gold expire-then-compact")
     _maintain("bronze-maintain", "Bronze expire-then-compact")
     _maintain("silver-maintain", "Silver expire-then-compact")
-    p_pm = add("platform-maintain", "Bronze + Silver + Gold expire-then-compact")
+    p_pm = add(
+        "platform-maintain",
+        "Bronze + Silver + Quarantine + Gold + Gold quarantine expire-then-compact",
+    )
     p_pm.add_argument("--apply", action="store_true")
     _compact("quarantine-compact", "Plan Silver quarantine compact / rewrite")
     _maintain("quarantine-maintain", "Quarantine expire-then-compact")
