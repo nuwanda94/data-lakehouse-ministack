@@ -3,19 +3,58 @@
 from __future__ import annotations
 
 import argparse
-import json
 import sys
 from collections.abc import Callable
-from typing import Any
 
-
-def _print(payload: Any) -> None:
-    print(json.dumps(payload, indent=2, default=str))
-
-
-def _ok(payload: dict[str, Any]) -> int:
-    _print(payload)
-    return 0 if payload.get("ok", True) else 1
+from lakehouse.cli_commands import (
+    _cmd_athena,
+    _cmd_bcompact,
+    _cmd_bmaintain,
+    _cmd_bret,
+    _cmd_catalog,
+    _cmd_compact,
+    _cmd_contracts,
+    _cmd_dbt,
+    _cmd_demo,
+    _cmd_dlq,
+    _cmd_env,
+    _cmd_gold,
+    _cmd_gqcompact,
+    _cmd_gqmaintain,
+    _cmd_gqret,
+    _cmd_health,
+    _cmd_ingest,
+    _cmd_lineage,
+    _cmd_maintain,
+    _cmd_metrics,
+    _cmd_outputs,
+    _cmd_partitions,
+    _cmd_pipeline,
+    _cmd_pmaintain,
+    _cmd_qcompact,
+    _cmd_qdash,
+    _cmd_qmaintain,
+    _cmd_qret,
+    _cmd_quality,
+    _cmd_quality_dashboard,
+    _cmd_query,
+    _cmd_redrive,
+    _cmd_reprocess,
+    _cmd_retention,
+    _cmd_runs,
+    _cmd_scompact,
+    _cmd_security,
+    _cmd_seed,
+    _cmd_settings,
+    _cmd_sfn,
+    _cmd_sfn_def,
+    _cmd_silver,
+    _cmd_sla,
+    _cmd_smaintain,
+    _cmd_sret,
+    _cmd_stream,
+    _cmd_ui,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -35,19 +74,19 @@ def main(argv: list[str] | None = None) -> int:
     add("quality", "Run Silver quality gate")
     add("gold", "Aggregate Silver → Gold metrics")
     add("query", "Print Gold summary")
-    add("catalog", "Describe (and best-effort register) Glue Silver/Gold tables")
-    add("partitions", "Describe Athena partition projection + discover Hive keys on S3")
-    add("metrics", "Describe the CloudWatch metric catalog and in-process buffer")
+    add("catalog", "Describe Glue Silver/Gold tables")
+    add("partitions", "Describe Athena partition projection")
+    add("metrics", "Describe the CloudWatch metric catalog")
     p_athena = add("athena", "Describe Athena workgroup + named queries")
-    p_athena.add_argument("--name", default=None, help="Named query to start")
+    p_athena.add_argument("--name", default=None)
     add("runs", "List pipeline runs from DynamoDB")
     add("sfn", "Walk the Step Functions graph locally")
     add("sfn-def", "Print the medallion Amazon States Language definition")
     p_dlq = add("dlq", "Peek the Bronze events dead-letter queue")
     p_dlq.add_argument("--max", type=int, default=10, dest="max_messages")
-    p_redrive = add("redrive", "Move Bronze DLQ messages back onto the source events queue")
+    p_redrive = add("redrive", "Move Bronze DLQ messages back onto the events queue")
     p_redrive.add_argument("--max", type=int, default=10, dest="max_messages")
-    p_reprocess = add("reprocess", "Rebuild Gold partitions for a late-arriving lookback window")
+    p_reprocess = add("reprocess", "Rebuild Gold partitions for a lookback window")
     p_reprocess.add_argument("--lookback-days", type=int, default=None)
     p_reprocess.add_argument("--as-of", default=None)
     add("dbt", "Parse and lint the transform/dbt Gold project")
@@ -185,3 +224,7 @@ def dispatch(args: argparse.Namespace) -> int:
         print(f"unknown command: {args.command}", file=sys.stderr)
         return 2
     return handler(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
