@@ -59,14 +59,24 @@ cuts: `bronze_split` (cleanse vs reject leaving Bronze) and
 Mermaid records the family mix as `%% path ratios: cleanse 0.6667
 reject 0.2333 quarantine 0.1`.
 
-A **path-ratio alert** compares the family cleanse share against a
-floor (`LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`, default `0.60`, or
-`--cleanse-floor`). Spec fixtures sit at `0.6667`, so the default is
-green. Drop the share (or raise the floor) and `python -m lakehouse
-lineage` exits `1` with `path_ratio_alert.status = "breached"`.
-Mermaid records `%% path-ratio alert: ok cleanse 0.6667 floor 0.6`.
-The Bronze-split cleanse share is reported as a secondary cut using
-the same floor; it does not flip the top-level `ok` by itself.
+A **path-ratio alert** compares four cuts:
+
+* family cleanse share vs `LAKEHOUSE_LINEAGE_CLEANSE_FLOOR` /
+  `--cleanse-floor` (default `0.60`; spec sits at `0.6667`)
+* Bronze-split cleanse share vs `LAKEHOUSE_LINEAGE_BRONZE_CLEANSE_FLOOR`
+  / `--bronze-cleanse-floor` (default `0.80`; spec sits at `0.8571`)
+* quality-split aggregate share vs
+  `LAKEHOUSE_LINEAGE_QUALITY_AGGREGATE_FLOOR` /
+  `--quality-aggregate-floor` (default `0.15`; spec sits at `0.1667`)
+* quality-split reject share vs
+  `LAKEHOUSE_LINEAGE_QUALITY_REJECT_CEILING` /
+  `--quality-reject-ceiling` (default `0.50`; spec sits at `0.3333`)
+
+Miss a floor or exceed the reject ceiling and `python -m lakehouse
+lineage` exits `1` with `path_ratio_alert.status = "breached"`. Any
+cut can flip the top-level `ok`. Mermaid records
+`%% path-ratio alert: …`, `%% bronze-split alert: …`, and
+`%% quality-split alert: … aggregate … floor … reject … ceiling …`.
 
 When S3 or DynamoDB is unreachable the graph still renders from the
 hermetic spec (`backend=spec`).
@@ -77,6 +87,7 @@ hermetic spec (`backend=spec`).
 python -m lakehouse lineage
 python -m lakehouse lineage --out build/lineage.mmd
 python -m lakehouse lineage --cleanse-floor 0.8   # fail if cleanse share < 80%
+python -m lakehouse lineage --quality-reject-ceiling 0.2  # fail if quality reject > 20%
 make lineage
 ```
 
