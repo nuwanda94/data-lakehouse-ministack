@@ -146,7 +146,5 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
         if live_ok
         else spec["quarantine_subgraph"],
         "path_ratios": live["path_ratios"] if live_ok else spec["path_ratios"],
-        "path_ratio_alert": live["path_ratio_alert"]
-        if live_ok
-        else spec["path_ratio_alert"],
+        "path_ratio_alert": live["path_ratio_alert"] if live_ok else spec["path_ratio_alert"],
     }
