@@ -13,6 +13,11 @@ This file is updated by the `hourly-chore-feat` automation on every run.
 
 ## Runs
 
+## 2026-09-03 21:10 IST
+- Completed: feat: Lineage edge weights from live object counts
+- Next candidate: feat: Lineage path ratios (cleanse vs reject vs quarantine)
+- Notes: Spec + live edges now stamp `weight` from the destination node's object count. Mermaid labels include the weight (`bronze -->|cleanse 18| silver`). CLI JSON exposes `edge_weights` and quarantine subgraph incoming/outgoing weight sums. Docs in `docs/lineage.md`.
+
 ## 2026-09-03 18:08 IST
 - Completed: feat: Combined quarantine lineage subgraph (Silver + Gold side paths)
 - Next candidate: feat: Lineage edge weights from live object counts
