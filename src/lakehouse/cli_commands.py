@@ -413,6 +413,8 @@ def _cmd_lineage(args: argparse.Namespace) -> int:
         describe_lineage(
             out=getattr(args, "out", None),
             cleanse_floor=getattr(args, "cleanse_floor", None),
+            bronze_cleanse_floor=getattr(args, "bronze_cleanse_floor", None),
+            quality_aggregate_floor=getattr(args, "quality_aggregate_floor", None),
         )
     )
 
