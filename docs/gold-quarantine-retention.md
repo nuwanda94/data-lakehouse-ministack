@@ -34,4 +34,6 @@ GOLD_QUARANTINE_RETENTION_DAYS=14 make gold-quarantine-retention
 `--apply` only deletes objects that the plan marked `expire`. Spec
 backend never deletes. Exit code `1` means a live delete failed.
 
-See also [`docs/gold-quarantine.md`](gold-quarantine.md) for the write path.
+See also [`docs/gold-quarantine.md`](gold-quarantine.md) for the write path
+and [`docs/gold-quarantine-compact.md`](gold-quarantine-compact.md) for
+partition rewrite.

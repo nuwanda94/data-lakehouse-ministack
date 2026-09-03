@@ -66,3 +66,8 @@ Expired Gold quarantine partitions are planned by
 `python -m lakehouse gold-quarantine-retention` (see
 [`gold-quarantine-retention.md`](gold-quarantine-retention.md)). Default
 TTL is 30 days.
+
+Fragmented quarantine partitions are planned by
+`python -m lakehouse gold-quarantine-compact` (see
+[`gold-quarantine-compact.md`](gold-quarantine-compact.md)). Default
+budget is 2 objects per `reason=/metric=/dt=` prefix.
