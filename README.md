@@ -1,5 +1,9 @@
 # data-lakehouse-ministack
 
+[![CI](https://github.com/nuwanda94/data-lakehouse-ministack/actions/workflows/ci.yml/badge.svg)](https://github.com/nuwanda94/data-lakehouse-ministack/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **A production-shaped medallion lakehouse you can run on a laptop.**
 
 Bronze → Silver → Gold on [MiniStack](https://github.com/ministackorg/ministack)
@@ -16,6 +20,19 @@ make demo          # seed → quality → gold → assert
 so the showcase still works when Docker is down. Details:
 [`docs/demo.md`](docs/demo.md).
 
+**Who this is for.** Data platform and analytics engineers evaluating
+local-first lakehouse patterns (contracts, quality gates, orchestration,
+catalog) without standing up a real AWS account first.
+
+**Success in 15 minutes.** `make demo` prints `"assertions": {"ok": true}`
+and `make query` returns Gold metrics. Offline proof with no Docker:
+
+```bash
+python -m lakehouse demo --mode offline --count 20
+```
+
+Hiring-manager 15-minute path: [`docs/skills.md`](docs/skills.md).
+
 ## Why this exists
 
 Most “lakehouse on AWS” samples assume a real account, skip contracts, and
@@ -24,13 +41,35 @@ hide quality behind a notebook cell. This repo is the opposite:
 | You get | Instead of |
 | --- | --- |
 | Zone contracts in `configs/contracts/` | Informal JSON blobs |
-| An explicit quality gate that can fail the run | “trust the transform” |
+| An explicit quality gate that can fail the run or quarantine rows | “trust the transform” |
 | Run metadata in DynamoDB (`run_id`, status, metrics) | CloudWatch tail only |
 | Terraform against MiniStack **and** AWS | Two divergent stacks |
 | Hermetic unit tests + a MiniStack CI job | “works on my machine” |
 
-It is a portfolio-grade control plane for a small event stream: ingest,
-cleanse, quarantine, aggregate, catalog, query.
+It is a **reference control plane** for a small commerce event stream:
+ingest, cleanse, quarantine, aggregate, catalog, query — not a multi-tenant
+SaaS platform or a petabyte Spark cluster.
+
+## Data model
+
+Synthetic **commerce events** (`page_view`, `add_to_cart`, `purchase`,
+`refund`). Field lists and types live in
+[`configs/contracts/`](configs/contracts/) and
+[`docs/data-dictionary.md`](docs/data-dictionary.md).
+
+| Zone | Grain | What lands |
+| --- | --- | --- |
+| Bronze | 1 raw event (`event_id`) | Immutable JSON under `events/` |
+| Silver | 1 cleansed event | Conformed rows under `events/`; rejects under `quarantine/` |
+| Quality | 1 report per run | Gate outcome; failing checks can quarantine |
+| Gold | 1 (`event_type` × calendar `dt`) | Daily metrics under `metrics/`; bad aggregates under `quarantine/` |
+
+`dt` is the **event occurrence date** from `event_ts`, not the pipeline run
+date. Late arrivals keep their original `dt` and set `_late` on Silver so
+Gold can reopen that partition (`make reprocess`).
+
+Analytical KPIs and named Athena queries:
+[`docs/analytical-model.md`](docs/analytical-model.md).
 
 ## Architecture
 
@@ -48,15 +87,17 @@ flowchart TB
 
   subgraph medallion ["Medallion"]
     SilverL["Silver Lambda"]
-    Gate["Quality gate<br/>Pandera-style contracts"]
+    Gate["Quality gate<br/>contracts"]
     GoldL["Gold Lambda"]
-    Silver["S3 silver<br/>cleansed rows"]
-    Gold["S3 gold<br/>daily metrics"]
+    Silver["S3 silver/events"]
+    Sq["S3 silver/quarantine"]
+    Gold["S3 gold/metrics"]
+    Gq["S3 gold/quarantine"]
   end
 
   subgraph control ["Control plane"]
-    Runner["python -m lakehouse<br/>local runner"]
-    SFN["Step Functions<br/>Map / Retry / Catch"]
+    Runner["python -m lakehouse"]
+    SFN["Step Functions"]
     Runs["DynamoDB pipeline-runs"]
     MetricsT["DynamoDB gold-metrics"]
   end
@@ -69,13 +110,18 @@ flowchart TB
   end
 
   Seed --> Bronze
-  Bronze --> SQS --> IngestL --> Bronze
+  Bronze --> SQS --> IngestL
+  IngestL --> Bronze
+  SQS -.->|poison| Runs
   Runner --> SilverL
   SFN --> SilverL
-  SilverL --> Gate
-  Gate -->|pass| Silver
-  Gate -->|fail| Runs
-  Silver --> GoldL --> Gold
+  SilverL -->|cleanse| Silver
+  SilverL -->|reject| Sq
+  Silver --> Gate
+  Gate -->|pass| GoldL
+  Gate -->|quarantine| Sq
+  GoldL -->|aggregate| Gold
+  GoldL -->|reject / unreadable| Gq
   GoldL --> MetricsT
   Runner --> Runs
   SFN --> Runs
@@ -90,9 +136,11 @@ flowchart TB
 2. **Step Functions:** `make sfn` — production-shaped Map / Retry / Catch
    ([ADR-003](docs/adr/003-local-orchestration-vs-step-functions.md)).
 
-Static copy of the diagram: [`docs/architecture.svg`](docs/architecture.svg).
+Lineage (including the combined quarantine subgraph): `make lineage` ·
+[`docs/lineage.md`](docs/lineage.md). Static diagram:
+[`docs/architecture.svg`](docs/architecture.svg).
 
-### Demo walkthrough (what `make demo` prints)
+### Demo walkthrough
 
 ```text
 $ make demo
@@ -107,28 +155,49 @@ Offline (no Docker):
 python -m lakehouse demo --mode offline --count 20
 ```
 
+## Guarantees and failure modes
+
+Delivery is **at-least-once** into the zones. Sinks are designed to be
+**idempotent** (content hashes / deterministic keys) so retries and SFN
+Catch paths do not double-count Gold. That is not a distributed
+exactly-once transaction across every store.
+
+| Concern | Behavior |
+| --- | --- |
+| Retries | Idempotent zone writes; short-circuit when a prior success is recognized |
+| Bad Bronze / schema | Silver `quarantine/` side path; cleansed rows still flow when valid |
+| Quality failures | Gate can fail the run and/or write quarantine; see quality ADR |
+| Bad Gold aggregates | Gold `quarantine/` — never mixed into `metrics/` KPI paths |
+| Late data | Keep original `dt`; reopen with `LOOKBACK_DAYS` / `make reprocess` |
+| Poison messages | SQS DLQ after `maxReceiveCount` → `make dlq` / `make redrive` |
+| Operator debug | DynamoDB `pipeline-runs` (`run_id`, status, metrics, errors) |
+
+Runbook: [`docs/runbook.md`](docs/runbook.md). Idempotency:
+[`docs/idempotency.md`](docs/idempotency.md). DLQ: [`docs/dlq.md`](docs/dlq.md).
+
 ## Status
 
-Phases 0–4 and most of Phase 5 are in place. Remaining work is a
-CHANGELOG/tag, an optional Kinesis path, and a shared-lib extract.
-Live checklist: [`TODO.md`](TODO.md).
+**v0.1** (tagged) is a working lakehouse on MiniStack. **HEAD** is
+showcase-ready: streaming path, shared storage helpers, lineage, freshness
+SLA, retention/compact/maintain across zones and quarantine, security
+scanning, and polished docs. Live checklist:
+[`TODO.md`](TODO.md) · history: [`CHANGELOG.md`](CHANGELOG.md) ·
+[`PROGRESS.md`](PROGRESS.md).
 
 | Area | Status | Notes |
 | --- | --- | --- |
 | Package + MiniStack + Terraform | Done | `make up` / `make infra` |
-| Seed / pipeline / query CLI | Done | `python -m lakehouse` |
-| Event-driven Bronze + Silver/Gold Lambdas | Done | S3 → SQS → handlers |
-| Quality gate + run metadata | Done | fail / quarantine + DynamoDB |
-| Step Functions + DLQ + idempotency | Done | [`docs/sfn.md`](docs/sfn.md) |
-| Glue + Athena + dbt + query UI | Done | [`docs/catalog.md`](docs/catalog.md), [`docs/dbt.md`](docs/dbt.md), [`docs/query-ui.md`](docs/query-ui.md) |
+| Seed / pipeline / query / demo CLI | Done | `python -m lakehouse` |
+| Event-driven Bronze + Silver/Gold Lambdas | Done | S3 → SQS → handlers + DLQ |
+| Quality gate + quarantine side paths | Done | Silver + Gold `quarantine/` |
+| Run metadata + lineage | Done | DynamoDB runs · `make lineage` |
+| Step Functions + idempotency + late data | Done | [`docs/sfn.md`](docs/sfn.md) |
+| Glue + Athena + dbt + query UI | Done | [`docs/catalog.md`](docs/catalog.md) |
+| Retention / compact / platform-maintain | Done | Bronze → Gold + quarantine |
 | Multi-env + cost notes + metrics | Done | [`docs/environments.md`](docs/environments.md) |
-| CI + pre-commit | Done | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
-| One-command demo | Done | `make demo` · [`docs/demo.md`](docs/demo.md) |
-| README showcase polish | Done | this file |
-| CONTRIBUTING / CODEOWNERS | Done | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`.github/CODEOWNERS`](.github/CODEOWNERS) |
-| Skills / hiring-manager map | Done | [`docs/skills.md`](docs/skills.md) |
-| Security scanning | Done | [`docs/security.md`](docs/security.md), `make security` |
-| Optional streaming (Kinesis) | Later | Phase 5 P2 |
+| CI + pre-commit + security scan | Done | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
+| Optional streaming (Kinesis / Firehose) | Done | `make stream` · gated Terraform |
+| Release process | Done | [`docs/release.md`](docs/release.md) · [`CHANGELOG.md`](CHANGELOG.md) |
 
 ## Prerequisites
 
@@ -138,7 +207,9 @@ Live checklist: [`TODO.md`](TODO.md).
 - Make + bash
 
 No AWS account for the local loop. `.env.example` uses MiniStack dummy
-credentials (`test` / `test`).
+credentials (`test` / `test`). Security scanning (`make security`,
+Checkov / Trivy / hermetic secret scan) is documented in
+[`docs/security.md`](docs/security.md); live-looking keys fail CI.
 
 ## Exact local run
 
@@ -179,7 +250,7 @@ make down        # stop MiniStack
 make clean       # down + delete local terraform state
 ```
 
-### Make targets
+### Core Make targets
 
 | Target | What it runs |
 | --- | --- |
@@ -187,16 +258,19 @@ make clean       # down + delete local terraform state
 | `make up` / `make health` | Compose + wait + `lakehouse health` |
 | `make infra` | `terraform init/apply` in `infra/terraform` |
 | `make outputs` | `scripts/get_outputs.sh` |
-| `make seed` / `pipeline` / `query` | eval outputs, then the matching CLI |
-| `make demo` | live MiniStack demo with assertions |
+| `make seed` / `pipeline` / `query` / `demo` | eval outputs, then the matching CLI |
 | `make ingest` / `silver` / `quality` / `gold` | individual zone steps |
 | `make sfn` / `make sfn-def` | Step Functions runner / definition dump |
 | `make catalog` / `make dbt` / `make ui` | Glue view, dbt parse, HTML snapshot |
+| `make lineage` / `make sla` | lineage snapshot / Gold freshness |
 | `make reprocess` | rebuild Gold for `LOOKBACK_DAYS` |
-| `make test` | `pytest -m "not integration"` |
-| `make test-integration` | live Bronze → Silver → Gold |
-| `make lint` / `make pre-commit` | ruff + hook suite |
-| `make ci` | lint + unit + MiniStack loop (mirrors GHA) |
+| `make test` / `make test-integration` | hermetic unit / live MiniStack |
+| `make lint` / `make pre-commit` / `make ci` | ruff, hooks, full local CI mirror |
+| `make security` | Checkov / Trivy / hermetic secret scan |
+
+Platform ops (retention, compact, maintain across Bronze / Silver / Gold /
+quarantine): run `make help` and see
+[`docs/platform-maintain.md`](docs/platform-maintain.md).
 
 `make seed` / `pipeline` / `query` / `demo` **eval** `scripts/get_outputs.sh`
 so bucket and table names stay aligned with Terraform. Process environment
@@ -224,9 +298,10 @@ GitHub Actions (`.github/workflows/ci.yml`) on every push and PR to `main`:
 2. **pre-commit** — `.pre-commit-config.yaml`
 3. **unit** — `make test` (hermetic; no MiniStack)
 4. **ministack-pipeline** — `up` → `infra` → `seed` → `pipeline` → `query` → integration tests
+5. **security** — hermetic secret scan + Checkov / Trivy wiring
 
-Those four job names are the required status checks for `main`. Enable
-branch protection with [`docs/ci.md`](docs/ci.md).
+Those job names are the **recommended** required status checks for `main`.
+How to enable branch protection: [`docs/ci.md`](docs/ci.md).
 
 Local full path: `make ci` (needs Docker + Terraform).
 Hook gate: `make pre-commit`.
@@ -250,32 +325,26 @@ Hook gate: `make pre-commit`.
 | `GOLD_METRICS_TABLE` | `lakehouse-local-gold-metrics` |
 | `LOOKBACK_DAYS` | `2` |
 
-More knobs: [`docs/configuration.md`](docs/configuration.md),
+Quality thresholds, retention TTLs, compact limits, and feature flags live
+in [`docs/configuration.md`](docs/configuration.md) and
 [`docs/environments.md`](docs/environments.md).
 
-## Package layout
+## Capability map
 
-```
-src/lakehouse/
-  config.py          # Settings + load_settings() / load_dotenv()
-  aws.py             # boto3 client factory (endpoint-aware)
-  cli.py             # python -m lakehouse
-  models.py          # shared dataclasses
-  contracts.py       # load configs/contracts/*.json
-  ops/               # health, seed, pipeline, query, demo, ui, terraform outputs
-  seed/              # synthetic Bronze events
-  pipeline/          # zone steps + run records
-  transforms/        # Bronze → Silver → Gold
-  quality/           # quality-gate hooks
-infra/terraform/     # S3, DynamoDB, Lambdas, SFN, Glue/Athena flags
-transform/dbt/       # Gold marts on Glue/Athena
-configs/contracts/   # zone field lists + partition keys
-notebooks/           # gold_query.ipynb
-scripts/             # wait_healthy.sh, get_outputs.sh, tf_env.sh
-.github/workflows/   # MiniStack CI
-docs/                # ADRs, runbook, catalog, cost, demo
-tests/
-```
+| Area | Where |
+| --- | --- |
+| Settings / AWS clients | `src/lakehouse/config.py`, `aws.py` |
+| CLI | `src/lakehouse/cli.py` · `python -m lakehouse` |
+| Ingest / zones | `ingest/`, `silver/`, `gold/`, `quality/` |
+| Shared storage helpers | `storage` (shared lib extract) |
+| Orchestration | `ops/pipeline.py`, `orchestration/sfn.py` |
+| Platform ops | retention / compact / maintain modules |
+| Lineage / SLA | `lineage.py`, SLA CLI |
+| Analytics | Glue/Athena helpers, `transform/dbt/`, query UI |
+| Contracts | `configs/contracts/` |
+| IaC | `infra/terraform/` |
+| Docs / ADRs | `docs/` |
+| Tests / CI | `tests/`, `.github/workflows/` |
 
 ## Docs map
 
@@ -285,15 +354,18 @@ tests/
 | [`docs/runbook.md`](docs/runbook.md) | Reprocess a date / debug a failed run |
 | [`docs/data-dictionary.md`](docs/data-dictionary.md) | Zone fields |
 | [`docs/analytical-model.md`](docs/analytical-model.md) | Gold grain + KPIs |
+| [`docs/lineage.md`](docs/lineage.md) | Zone graph + quarantine subgraph |
 | [`docs/catalog.md`](docs/catalog.md) / [`docs/athena.md`](docs/athena.md) | Glue + named queries |
 | [`docs/dbt.md`](docs/dbt.md) / [`docs/query-ui.md`](docs/query-ui.md) | Marts + HTML/notebook |
 | [`docs/sfn.md`](docs/sfn.md) / [`docs/dlq.md`](docs/dlq.md) | Orchestration + poison path |
+| [`docs/platform-maintain.md`](docs/platform-maintain.md) | Expire-then-compact across zones |
 | [`docs/cost-performance.md`](docs/cost-performance.md) | Athena scan cap, Lambda size |
 | [`docs/adr/README.md`](docs/adr/README.md) | Architecture decisions |
 | [`docs/skills.md`](docs/skills.md) | Hiring-manager skill matrix + 15-minute review path |
 | [`docs/security.md`](docs/security.md) | Checkov / Trivy / hermetic secret scan |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) / [`.github/CODEOWNERS`](.github/CODEOWNERS) | How to change the repo + review routing |
-| [`TODO.md`](TODO.md) / [`PROGRESS.md`](PROGRESS.md) | Live checklist + run log |
+| [`docs/release.md`](docs/release.md) | Tagging and CHANGELOG |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) / [`.github/CODEOWNERS`](.github/CODEOWNERS) | How to change the repo |
+| [`TODO.md`](TODO.md) / [`PROGRESS.md`](PROGRESS.md) / [`CHANGELOG.md`](CHANGELOG.md) | Checklist, run log, release notes |
 
 ## Skills demonstrated
 
@@ -310,6 +382,8 @@ Hiring-manager map of what the repo exercises. Full write-up with a
 | Orchestration | Local runner **and** Step Functions (ADR-003) |
 | Idempotency / late data | Content hashes, lookback, `make reprocess` |
 | Analytics surface | Glue, Athena named queries, dbt, query UI |
+| Platform lifecycle | Retention, compact, `platform-maintain` |
+| Lineage | Spec + live graphs including quarantine subgraph |
 | Local-first AWS | MiniStack + endpoint-aware boto3 |
 | IaC | Terraform workspaces / tfvars for local vs AWS |
 | Operability | Makefile, JSON CLI, run table, runbook |
@@ -323,7 +397,7 @@ dollar a month** at demo volume. The line that surprises people is
 Athena scanning Bronze instead of Gold.
 
 | Control | Default | Why |
-| --- | --- |
+| --- | --- | --- |
 | Athena bytes-scanned cutoff | 100 MiB / query | Hard cap (~$0.0005/query at $5/TB) |
 | Lambda memory / timeout | 256 MB, 60–120 s | Matches JSON + daily Gold grain |
 | `FEATURE_EMIT_METRICS` | off | Avoid CloudWatch custom-metric noise locally |
@@ -335,7 +409,7 @@ Worked examples: [`docs/cost-performance.md`](docs/cost-performance.md).
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
-| --- | --- |
+| --- | --- | --- |
 | `make up` hangs / health fails | Docker down or :4566 taken | `docker ps`; keep compose port and `AWS_ENDPOINT_URL` in sync |
 | `terraform apply` cannot reach AWS | MiniStack not up | `make up` first |
 | Seed writes to unexpected bucket | Stale env / missing outputs | `make outputs`; do not export old names in your shell |
