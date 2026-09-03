@@ -182,3 +182,97 @@ def path_ratios(graph: dict[str, Any]) -> dict[str, Any]:
             "ratios": _ratio_map(quality_weights),
         },
     }
+
+
+def quarantine_subgraph(graph: dict[str, Any]) -> dict[str, Any]:
+    """Silver + Gold quarantine leaves as one inspectable subgraph."""
+
+    node_ids = set(QUARANTINE_NODE_IDS)
+    nodes = [n for n in graph.get("nodes") or [] if n.get("id") in node_ids]
+    incoming = [e for e in graph.get("edges") or [] if e.get("to") in node_ids]
+    outgoing = [e for e in graph.get("edges") or [] if e.get("from") in node_ids]
+    objects = sum(int(n.get("objects") or 0) for n in nodes)
+    incoming_weight = sum(int(e.get("weight") or 0) for e in incoming)
+    outgoing_weight = sum(int(e.get("weight") or 0) for e in outgoing)
+    return {
+        "id": "quarantine",
+        "label": "quarantine side paths",
+        "node_ids": list(QUARANTINE_NODE_IDS),
+        "nodes": nodes,
+        "incoming": incoming,
+        "outgoing": outgoing,
+        "objects": objects,
+        "incoming_weight": incoming_weight,
+        "outgoing_weight": outgoing_weight,
+    }
+
+
+def spec_graph() -> dict[str, Any]:
+    """Offline lineage used by unit tests and when MiniStack is down."""
+
+    nodes = [
+        {
+            "id": "bronze",
+            "zone": "bronze",
+            "kind": "raw_events",
+            "uri": "s3://lakehouse-local-bronze/events/",
+            "objects": 20,
+        },
+        {
+            "id": "silver",
+            "zone": "silver",
+            "kind": "cleansed_events",
+            "uri": "s3://lakehouse-local-silver/events/",
+            "objects": 18,
+        },
+        {
+            "id": "silver_quarantine",
+            "zone": "silver",
+            "kind": "quality_quarantine",
+            "uri": "s3://lakehouse-local-silver/quarantine/",
+            "objects": 3,
+        },
+        {
+            "id": "quality",
+            "zone": "silver",
+            "kind": "quality_report",
+            "uri": "s3://lakehouse-local-silver/quality/",
+            "objects": 1,
+        },
+        {
+            "id": "gold",
+            "zone": "gold",
+            "kind": "daily_metrics",
+            "uri": "s3://lakehouse-local-gold/metrics/",
+            "objects": 1,
+        },
+        {
+            "id": "gold_quarantine",
+            "zone": "gold",
+            "kind": "rejected_metrics",
+            "uri": "s3://lakehouse-local-gold/quarantine/",
+            "objects": 2,
+        },
+        {
+            "id": "runs",
+            "zone": "control",
+            "kind": "pipeline_run",
+            "uri": "dynamodb://lakehouse-local-pipeline-runs",
+            "objects": 1,
+        },
+    ]
+    edges = attach_edge_weights(
+        nodes,
+        [{"from": src, "to": dst, "relation": rel} for src, dst, rel in SPEC_EDGES],
+    )
+    graph = {
+        "source": "spec",
+        "run_id": "spec-run",
+        "generated_at": datetime.now(tz=UTC).isoformat(),
+        "nodes": nodes,
+        "edges": edges,
+        "ok": True,
+    }
+    graph["quarantine_subgraph"] = quarantine_subgraph(graph)
+    graph["path_ratios"] = path_ratios(graph)
+    return graph
