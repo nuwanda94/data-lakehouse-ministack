@@ -44,7 +44,8 @@ def render_mermaid(snapshot: dict[str, Any] | None = None) -> str:
     lines.append(
         "  %% quality-split alert: "
         f"{'ok' if quality_cut.get('ok', True) else 'breached'} "
-        f"aggregate {quality_cut.get('value')} floor {quality_cut.get('floor')}"
+        f"aggregate {quality_cut.get('value')} floor {quality_cut.get('floor')} "
+        f"reject {quality_cut.get('reject_share')} ceiling {quality_cut.get('ceiling')}"
     )
     lines.append('  subgraph quarantine["quarantine side paths"]')
     for node in graph["nodes"]:
@@ -84,6 +85,7 @@ def describe_lineage(
     cleanse_floor: float | None = None,
     bronze_cleanse_floor: float | None = None,
     quality_aggregate_floor: float | None = None,
+    quality_reject_ceiling: float | None = None,
 ) -> dict[str, Any]:
     snap = collect_snapshot()
     graph = snap["live"] if snap["backend"] == "live" else snap["spec"]
@@ -94,6 +96,7 @@ def describe_lineage(
         cleanse_floor=cleanse_floor,
         bronze_cleanse_floor=bronze_cleanse_floor,
         quality_aggregate_floor=quality_aggregate_floor,
+        quality_reject_ceiling=quality_reject_ceiling,
     )
     result: dict[str, Any] = {
         "ok": bool(alert["ok"]),
