@@ -4,10 +4,12 @@ from pathlib import Path
 
 from lakehouse.cli import main
 from lakehouse.lineage import (
+    QUARANTINE_NODE_IDS,
     SPEC_EDGES,
     ZONES,
     collect_snapshot,
     describe_lineage,
+    quarantine_subgraph,
     render_mermaid,
     spec_graph,
     write_mermaid,
@@ -35,6 +37,15 @@ def test_spec_graph_covers_medallion_path() -> None:
     kinds = {n["id"]: n["kind"] for n in graph["nodes"]}
     assert kinds["silver"] == "cleansed_events"
     assert kinds["silver_quarantine"] == "quality_quarantine"
+    subgraph = graph["quarantine_subgraph"]
+    assert subgraph["id"] == "quarantine"
+    assert subgraph["node_ids"] == list(QUARANTINE_NODE_IDS)
+    assert subgraph["objects"] == 5
+    incoming = {(e["from"], e["to"], e["relation"]) for e in subgraph["incoming"]}
+    assert ("bronze", "silver_quarantine", "reject") in incoming
+    assert ("quality", "silver_quarantine", "quarantine") in incoming
+    assert ("quality", "gold_quarantine", "reject") in incoming
+    assert ("silver", "gold_quarantine", "unreadable") in incoming
 
 
 def test_snapshot_and_mermaid() -> None:
@@ -53,6 +64,8 @@ def test_snapshot_and_mermaid() -> None:
     assert "reject" in page
     assert "quarantine" in page
     assert "unreadable" in page
+    assert "subgraph quarantine" in page
+    assert "quarantine side paths" in page
 
 
 def test_write_mermaid_and_describe(tmp_path: Path) -> None:
@@ -65,7 +78,16 @@ def test_write_mermaid_and_describe(tmp_path: Path) -> None:
     assert "gold_quarantine" in result["node_ids"]
     assert "silver_quarantine" in result["node_ids"]
     assert result["edge_count"] == len(SPEC_EDGES)
+    assert result["quarantine_subgraph"]["node_ids"] == list(QUARANTINE_NODE_IDS)
+    assert result["quarantine_subgraph"]["incoming_count"] == 4
+    assert result["quarantine_subgraph"]["outgoing_count"] == 2
     assert Path(result["mermaid_path"]).is_file()
+
+
+def test_quarantine_subgraph_helper() -> None:
+    subgraph = quarantine_subgraph(spec_graph())
+    assert {n["id"] for n in subgraph["nodes"]} == set(QUARANTINE_NODE_IDS)
+    assert subgraph["label"] == "quarantine side paths"
 
 
 def test_cli_lineage(tmp_path: Path, capsys: object) -> None:

@@ -5,6 +5,10 @@ MiniStack CI is hermetic, so this module always builds a spec graph
 Gold metrics **or** Gold quarantine rejected-metrics + run row) and
 optionally folds in live DynamoDB runs and S3 object counts.
 
+The two quarantine leaves are also exposed as a combined subgraph so
+operators can inspect Silver + Gold side paths without walking the
+happy-path edges.
+
 ``python -m lakehouse lineage`` prints JSON. ``--out`` writes Mermaid.
 """
 
@@ -44,6 +48,8 @@ ZONES = (
     "runs",
 )
 
+QUARANTINE_NODE_IDS: tuple[str, ...] = ("silver_quarantine", "gold_quarantine")
+
 SPEC_EDGES: tuple[tuple[str, str, str], ...] = (
     ("bronze", "silver", "cleanse"),
     ("bronze", "silver_quarantine", "reject"),
@@ -59,6 +65,25 @@ SPEC_EDGES: tuple[tuple[str, str, str], ...] = (
     ("gold", "runs", "run_metadata"),
     ("gold_quarantine", "runs", "run_metadata"),
 )
+
+
+def quarantine_subgraph(graph: dict[str, Any]) -> dict[str, Any]:
+    """Silver + Gold quarantine leaves as one inspectable subgraph."""
+
+    node_ids = set(QUARANTINE_NODE_IDS)
+    nodes = [n for n in graph.get("nodes") or [] if n.get("id") in node_ids]
+    incoming = [e for e in graph.get("edges") or [] if e.get("to") in node_ids]
+    outgoing = [e for e in graph.get("edges") or [] if e.get("from") in node_ids]
+    objects = sum(int(n.get("objects") or 0) for n in nodes)
+    return {
+        "id": "quarantine",
+        "label": "quarantine side paths",
+        "node_ids": list(QUARANTINE_NODE_IDS),
+        "nodes": nodes,
+        "incoming": incoming,
+        "outgoing": outgoing,
+        "objects": objects,
+    }
 
 
 def spec_graph() -> dict[str, Any]:
@@ -116,7 +141,7 @@ def spec_graph() -> dict[str, Any]:
         },
     ]
     edges = [{"from": src, "to": dst, "relation": rel} for src, dst, rel in SPEC_EDGES]
-    return {
+    graph = {
         "source": "spec",
         "run_id": "spec-run",
         "generated_at": datetime.now(tz=UTC).isoformat(),
@@ -124,6 +149,8 @@ def spec_graph() -> dict[str, Any]:
         "edges": edges,
         "ok": True,
     }
+    graph["quarantine_subgraph"] = quarantine_subgraph(graph)
+    return graph
 
 
 def _live_object_count(settings: Settings, bucket: str, prefix: str) -> int | None:
@@ -158,6 +185,7 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
             "spec": spec,
             "live": None,
             "zones": list(ZONES),
+            "quarantine_subgraph": spec["quarantine_subgraph"],
         }
     live_runs = _live_runs(resolved)
     bronze_n = _live_object_count(resolved, resolved.bronze_bucket, "events/")
@@ -234,11 +262,15 @@ def collect_snapshot(settings: Settings | None = None) -> dict[str, Any]:
         "runs_sampled": len(live_runs),
         "ok": live_ok,
     }
+    live["quarantine_subgraph"] = quarantine_subgraph(live)
     return {
         "backend": "live" if live_ok else "spec",
         "spec": spec,
         "live": live,
         "zones": list(ZONES),
+        "quarantine_subgraph": live["quarantine_subgraph"]
+        if live_ok
+        else spec["quarantine_subgraph"],
     }
 
 
@@ -247,8 +279,20 @@ def render_mermaid(snapshot: dict[str, Any] | None = None) -> str:
 
     snap = snapshot or collect_snapshot()
     graph = snap["live"] if snap.get("backend") == "live" else snap["spec"]
+    q_ids = set(QUARANTINE_NODE_IDS)
     lines = ["flowchart LR"]
+    lines.append('  subgraph quarantine["quarantine side paths"]')
     for node in graph["nodes"]:
+        if node["id"] not in q_ids:
+            continue
+        label = f"{node['id']}\n{node['kind']}"
+        if node.get("objects") is not None:
+            label += f"\n{node['objects']} objects"
+        lines.append(f'    {node["id"]}["{label}"]')
+    lines.append("  end")
+    for node in graph["nodes"]:
+        if node["id"] in q_ids:
+            continue
         label = f"{node['id']}\n{node['kind']}"
         if node.get("objects") is not None:
             label += f"\n{node['objects']} objects"
@@ -268,6 +312,7 @@ def write_mermaid(path: Path, snapshot: dict[str, Any] | None = None) -> Path:
 def describe_lineage(*, out: str | None = None) -> dict[str, Any]:
     snap = collect_snapshot()
     graph = snap["live"] if snap["backend"] == "live" else snap["spec"]
+    subgraph = snap.get("quarantine_subgraph") or quarantine_subgraph(graph)
     result: dict[str, Any] = {
         "ok": True,
         "backend": snap["backend"],
@@ -275,6 +320,14 @@ def describe_lineage(*, out: str | None = None) -> dict[str, Any]:
         "node_ids": [n["id"] for n in graph["nodes"]],
         "edge_count": len(graph["edges"]),
         "zones": snap["zones"],
+        "quarantine_subgraph": {
+            "id": subgraph["id"],
+            "label": subgraph["label"],
+            "node_ids": subgraph["node_ids"],
+            "incoming_count": len(subgraph["incoming"]),
+            "outgoing_count": len(subgraph["outgoing"]),
+            "objects": subgraph["objects"],
+        },
     }
     if out:
         written = write_mermaid(Path(out), snapshot=snap)
