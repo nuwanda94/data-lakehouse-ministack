@@ -8,6 +8,7 @@ from typing import Any
 from lakehouse.lineage import (
     QUARANTINE_NODE_IDS,
     RATIO_FAMILIES,
+    path_ratio_alert,
     path_ratios,
     quarantine_subgraph,
 )
@@ -21,11 +22,16 @@ def render_mermaid(snapshot: dict[str, Any] | None = None) -> str:
     graph = snap["live"] if snap.get("backend") == "live" else snap["spec"]
     ratios = graph.get("path_ratios") or snap.get("path_ratios") or path_ratios(graph)
     family = ratios.get("ratios") or {}
+    alert = graph.get("path_ratio_alert") or snap.get("path_ratio_alert") or path_ratio_alert(ratios)
     q_ids = set(QUARANTINE_NODE_IDS)
     lines = ["flowchart LR"]
     if family:
         parts = " ".join(f"{name} {family[name]}" for name in RATIO_FAMILIES if name in family)
         lines.append(f"  %% path ratios: {parts}")
+    lines.append(
+        "  %% path-ratio alert: "
+        f"{alert.get('status')} cleanse {alert.get('value')} floor {alert.get('floor')}"
+    )
     lines.append('  subgraph quarantine["quarantine side paths"]')
     for node in graph["nodes"]:
         if node["id"] not in q_ids:
@@ -58,13 +64,18 @@ def write_mermaid(path: Path, snapshot: dict[str, Any] | None = None) -> Path:
     return dest
 
 
-def describe_lineage(*, out: str | None = None) -> dict[str, Any]:
+def describe_lineage(
+    *,
+    out: str | None = None,
+    cleanse_floor: float | None = None,
+) -> dict[str, Any]:
     snap = collect_snapshot()
     graph = snap["live"] if snap["backend"] == "live" else snap["spec"]
     subgraph = snap.get("quarantine_subgraph") or quarantine_subgraph(graph)
     ratios = graph.get("path_ratios") or snap.get("path_ratios") or path_ratios(graph)
+    alert = path_ratio_alert(ratios, cleanse_floor=cleanse_floor)
     result: dict[str, Any] = {
-        "ok": True,
+        "ok": bool(alert["ok"]),
         "backend": snap["backend"],
         "run_id": graph.get("run_id"),
         "node_ids": [n["id"] for n in graph["nodes"]],
@@ -96,6 +107,7 @@ def describe_lineage(*, out: str | None = None) -> dict[str, Any]:
             "bronze_split": ratios.get("bronze_split"),
             "quality_split": ratios.get("quality_split"),
         },
+        "path_ratio_alert": alert,
     }
     if out:
         written = write_mermaid(Path(out), snapshot=snap)

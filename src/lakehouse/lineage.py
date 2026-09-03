@@ -10,11 +10,16 @@ operators can inspect Silver + Gold side paths without walking the
 happy-path edges. Edge weights fold into **path ratios**
 (cleanse vs reject vs quarantine) plus Bronze and quality cuts.
 
+A **path-ratio alert** compares the family cleanse share against
+``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` (default 0.60). The CLI exits 1
+when the floor is missed.
+
 ``python -m lakehouse lineage`` prints JSON. ``--out`` writes Mermaid.
 """
 
 from __future__ import annotations
 
+import os
 import socket
 from datetime import UTC, datetime
 from pathlib import Path
@@ -60,6 +65,9 @@ RATIO_FAMILIES: dict[str, tuple[str, ...]] = {
     "reject": ("reject", "unreadable"),
     "quarantine": ("quarantine",),
 }
+
+DEFAULT_CLEANSE_FLOOR = 0.60
+CLEANSE_FLOOR_ENV = "LAKEHOUSE_LINEAGE_CLEANSE_FLOOR"
 
 SPEC_EDGES: tuple[tuple[str, str, str], ...] = (
     ("bronze", "silver", "cleanse"),
@@ -184,6 +192,69 @@ def path_ratios(graph: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def resolve_cleanse_floor(explicit: float | None = None) -> float:
+    """Family cleanse-share floor (0–1)."""
+
+    if explicit is not None:
+        return float(explicit)
+    raw = os.environ.get(CLEANSE_FLOOR_ENV)
+    if raw and raw.strip():
+        return float(raw)
+    return DEFAULT_CLEANSE_FLOOR
+
+
+def path_ratio_alert(
+    ratios: dict[str, Any],
+    *,
+    cleanse_floor: float | None = None,
+) -> dict[str, Any]:
+    """Alert when the family cleanse share drops below the floor.
+
+    Spec fixtures sit at 0.6667 cleanse, so the default 0.60 floor is
+    green. Operators raise ``LAKEHOUSE_LINEAGE_CLEANSE_FLOOR`` (or pass
+    ``--cleanse-floor``) when a pipeline should fail the lineage check.
+    Bronze-split cleanse share is reported as a secondary cut using the
+    same floor; it does not flip the top-level ``ok`` by itself.
+    """
+
+    floor = resolve_cleanse_floor(cleanse_floor)
+    family = ratios.get("ratios") or {}
+    try:
+        cleanse_share = float(family.get("cleanse") or 0.0)
+    except (TypeError, ValueError):
+        cleanse_share = 0.0
+    total = int(ratios.get("total") or 0)
+    ok = total <= 0 or cleanse_share >= floor
+    bronze = (ratios.get("bronze_split") or {}).get("ratios") or {}
+    try:
+        bronze_cleanse = float(bronze.get("cleanse") or 0.0)
+    except (TypeError, ValueError):
+        bronze_cleanse = 0.0
+    bronze_total = int((ratios.get("bronze_split") or {}).get("total") or 0)
+    bronze_ok = bronze_total <= 0 or bronze_cleanse >= floor
+    return {
+        "metric": "cleanse_share",
+        "value": cleanse_share,
+        "floor": floor,
+        "status": "ok" if ok else "breached",
+        "ok": ok,
+        "cuts": {
+            "family": {
+                "metric": "cleanse_share",
+                "value": cleanse_share,
+                "floor": floor,
+                "ok": ok,
+            },
+            "bronze_split": {
+                "metric": "cleanse_share",
+                "value": bronze_cleanse,
+                "floor": floor,
+                "ok": bronze_ok,
+            },
+        },
+    }
+
+
 def quarantine_subgraph(graph: dict[str, Any]) -> dict[str, Any]:
     """Silver + Gold quarantine leaves as one inspectable subgraph."""
 
@@ -275,6 +346,8 @@ def spec_graph() -> dict[str, Any]:
     }
     graph["quarantine_subgraph"] = quarantine_subgraph(graph)
     graph["path_ratios"] = path_ratios(graph)
+    graph["path_ratio_alert"] = path_ratio_alert(graph["path_ratios"])
+    graph["ok"] = bool(graph["ok"]) and bool(graph["path_ratio_alert"]["ok"])
     return graph
 
 
@@ -296,7 +369,11 @@ def write_mermaid(path: Path, snapshot: dict[str, Any] | None = None) -> Path:
     return _impl(path, snapshot)
 
 
-def describe_lineage(*, out: str | None = None) -> dict[str, Any]:
+def describe_lineage(
+    *,
+    out: str | None = None,
+    cleanse_floor: float | None = None,
+) -> dict[str, Any]:
     from lakehouse.lineage_render import describe_lineage as _impl
 
-    return _impl(out=out)
+    return _impl(out=out, cleanse_floor=cleanse_floor)
