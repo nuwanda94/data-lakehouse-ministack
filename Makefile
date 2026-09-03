@@ -19,7 +19,7 @@ export AWS_ACCESS_KEY_ID ?= test
 export AWS_SECRET_ACCESS_KEY ?= test
 export AWS_EC2_METADATA_DISABLED ?= true
 
-.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality quality-dashboard gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess lineage sla retention quarantine-retention quarantine-compact quarantine-maintain bronze-retention bronze-compact bronze-maintain silver-retention silver-compact silver-maintain compact maintain platform-maintain test test-integration ci lint pre-commit security clean
+.PHONY: help install up down logs health package infra infra-plan destroy seed pipeline ingest silver quality quality-dashboard gold sfn sfn-def query catalog dbt ui demo runs outputs reprocess lineage sla retention quarantine-retention gold-quarantine-retention quarantine-compact quarantine-maintain bronze-retention bronze-compact bronze-maintain silver-retention silver-compact silver-maintain compact maintain platform-maintain test test-integration ci lint pre-commit security clean
 
 help:
 	@printf '%s\n' \
@@ -47,6 +47,7 @@ help:
 	  '  make sla       evaluate Gold freshness SLA' \
 	  '  make retention plan Gold partition expiry (dry-run)' \
 	  '  make quarantine-retention plan Silver quarantine TTL (dry-run)' \
+	  '  make gold-quarantine-retention plan Gold quarantine expiry (dry-run)' \
 	  '  make quarantine-compact plan Silver quarantine compact / rewrite (dry-run)' \
 	  '  make quarantine-maintain Quarantine expire-then-compact (dry-run)' \
 	  '  make bronze-retention plan Bronze raw event expiry (dry-run)' \
@@ -174,6 +175,9 @@ retention:
 
 quarantine-retention:
 	@$(PYTHON) -m lakehouse quarantine-retention $(if $(QUARANTINE_RETENTION_DAYS),--retention-days $(QUARANTINE_RETENTION_DAYS),)
+
+gold-quarantine-retention:
+	@$(PYTHON) -m lakehouse gold-quarantine-retention $(if $(GOLD_QUARANTINE_RETENTION_DAYS),--retention-days $(GOLD_QUARANTINE_RETENTION_DAYS),)
 
 QUARANTINE_COMPACT_MAX_OBJECTS ?=
 quarantine-compact:
